@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>单词快速复习</title>
+<style>
+:root {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --text: #1c1c1e;
+  --sub: #8e8e93;
+  --green: #34c759;
+  --red: #ff3b30;
+  --blue: #007aff;
+  --gray: #e5e5ea;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 16px 16px 100px;
+}
+.container { max-width: 420px; margin: 0 auto; }
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.header-btn {
+  background: var(--card);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.stat {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 12px 8px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.stat-num {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stat-label {
+  font-size: 0.7rem;
+  color: var(--sub);
+  margin-top: 2px;
+}
+.stat.known .stat-num { color: var(--green); }
+.stat.unknown .stat-num { color: var(--red); }
+
+.progress-bar {
+  height: 6px;
+  background: var(--gray);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #007aff, #5ac8fa);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 40px 24px 32px;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+.mode-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: var(--blue);
+  color: white;
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  display: none;
+}
+.mode-badge.show { display: block; }
+.word {
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s;
+}
+.word:active { transform: scale(0.97); }
+.phonetic {
+  color: var(--sub);
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+}
+.definition {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #3a3a3c;
+  background: #f8f8fa;
+  padding: 16px;
+  border-radius: 14px;
+  text-align: left;
+  margin-top: 8px;
+}
+.definition.hidden { display: none; }
+
+.action-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.action-btn {
+  flex: 1;
+  padding: 18px;
+  border: none;
+  border-radius: 16px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.action-btn:active { transform: scale(0.97); }
+.action-btn.unknown { background: var(--red); color: white; }
+.action-btn.known { background: var(--green); color: white; }
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.tool-btn {
+  flex: 1;
+  background: var(--card);
+  border: none;
+  border-radius: 14px;
+  padding: 14px 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  cursor: pointer;
+}
+.tool-btn.active {
+  background: var(--blue);
+  color: white;
+}
+.tool-btn:active { opacity: 0.7; }
+
+.filter-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.filter-chip {
+  background: var(--card);
+  border: none;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  cursor: pointer;
+}
+.filter-chip.active {
+  background: var(--blue);
+  color: white;
+}
+
+.secondary-tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sec-btn {
+  flex: 1 1 calc(50% - 4px);
+  background: transparent;
+  border: 1px solid #d1d1d6;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+}
+.sec-btn.danger {
+  border-color: #ff3b30;
+  color: #ff3b30;
+}
+.sec-btn.export {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.outline {
+  display: none;
+  background: var(--card);
+  border-radius: 20px;
+  padding: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.outline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+.outline-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.outline-close {
+  background: var(--gray);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.word-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 4px;
+  border-bottom: 1px solid #f2f2f7;
+  gap: 12px;
+}
+.word-item:last-child { border-bottom: none; }
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.known { background: var(--green); }
+.status-dot.unknown { background: var(--red); }
+.status-dot.unmarked { background: #c7c7cc; }
+.word-info { flex: 1; min-width: 0; }
+.word-info .w { font-weight: 600; font-size: 1rem; }
+.word-info .p { color: var(--sub); font-size: 0.8rem; }
+.word-def {
+  font-size: 0.85rem;
+  color: #636366;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: none;
+  z-index: 200;
+  backdrop-filter: blur(10px);
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>单词复习</h1>
+    <button class="header-btn" onclick="toggleOutline()">☰</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num" id="total">0</div>
+      <div class="stat-label">总计</div>
+    </div>
+    <div class="stat known">
+      <div class="stat-num" id="knownCount">0</div>
+      <div class="stat-label">认识</div>
+    </div>
+    <div class="stat unknown">
+      <div class="stat-num" id="unknownCount">0</div>
+      <div class="stat-label">不认识</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="unmarked">0</div>
+      <div class="stat-label">未标记</div>
+    </div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div id="cardView">
+    <div class="card">
+      <div class="mode-badge" id="modeBadge">释义常显</div>
+      <div class="word" id="word" onclick="onWordClick()">Loading</div>
+      <div class="phonetic" id="phonetic"></div>
+      <div class="definition hidden" id="definition"></div>
+    </div>
+
+    <div class="action-row">
+      <button class="action-btn unknown" onclick="mark(false)">不认识</button>
+      <button class="action-btn known" onclick="mark(true)">认识</button>
+    </div>
+
+    <div class="toolbar">
+      <button class="tool-btn" id="alwaysShowBtn" onclick="toggleAlwaysShow()">常显释义</button>
+      <button class="tool-btn" onclick="prevCard()">上一个</button>
+      <button class="tool-btn" onclick="nextCard()">下一个</button>
+    </div>
+
+    <div class="filter-row">
+      <button class="filter-chip active" data-mode="all" onclick="filterMode('all', this)">全部</button>
+      <button class="filter-chip" data-mode="known" onclick="filterMode('known', this)">认识</button>
+      <button class="filter-chip" data-mode="unknown" onclick="filterMode('unknown', this)">不认识</button>
+      <button class="filter-chip" data-mode="unmarked" onclick="filterMode('unmarked', this)">未标记</button>
+      <button class="filter-chip" onclick="shuffle()">打乱</button>
+    </div>
+
+    <div class="secondary-tools">
+      <button class="sec-btn" onclick="toggleOutline()">掌握大纲</button>
+      <button class="sec-btn export" onclick="exportUnknown()">导出未掌握</button>
+      <button class="sec-btn danger" onclick="resetProgress()">重置进度</button>
+    </div>
+  </div>
+
+  <div class="outline" id="outline">
+    <div class="outline-header">
+      <h2>掌握大纲</h2>
+      <button class="outline-close" onclick="toggleOutline()">✕</button>
+    </div>
+    <div id="outlineList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const VOCAB = [{"word": "abide", "phonetic": "/əˈbaɪd/", "definition": "vi. 持续；忍受；停留 vt. 忍受，容忍；停留；遵守"}, {"word": "abound", "phonetic": "/əˈbaʊnd/", "definition": "vi. 富于；充满"}, {"word": "acclaim", "phonetic": "/əˈkleɪm/", "definition": "n. 欢呼，喝彩；称赞 vt. 称赞；为…喝彩，向…欢呼 vi. 欢呼，喝彩"}, {"word": "adjective", "phonetic": "/ˈædʒɪktɪv/", "definition": "n. 形容词 adj. 形容词的；从属的"}, {"word": "aesthetic", "phonetic": "/i:sˈθetɪk/", "definition": "adj. 美的；美学的；审美的，具有审美趣味的"}, {"word": "agreeable", "phonetic": "/əˈgri:əbl/", "definition": "adj. 令人愉快的；适合的；和蔼可亲的"}, {"word": "albeit", "phonetic": "/ɔ:lˈbi:.ɪt/", "definition": "conj. 虽然；即使"}, {"word": "allegiance", "phonetic": "/əˈli:dʒəns/", "definition": "n. 效忠，忠诚；忠贞"}, {"word": "alongside", "phonetic": "/əˌlɒŋˈsaɪd/", "definition": "prep. 在……旁边 adv. 在旁边"}, {"word": "analogue", "phonetic": "/ˈænəlɒg/", "definition": "n. 类似物；类似情况；对等的人 adj. 类似的；相似物的；模拟计算机的"}, {"word": "anguish", "phonetic": "/ˈæŋgwɪʃ/", "definition": "n. 痛苦；苦恼 vt. 使极度痛苦 vi. 感到极度的痛苦"}, {"word": "appliance", "phonetic": "/əˈplaɪəns/", "definition": "n. 器具；器械；装置"}, {"word": "appraisal", "phonetic": "/əˈpreɪzl/", "definition": "n. 评价；估价（尤指估价财产，以便征税）；估计"}, {"word": "apt", "phonetic": "/æpt/", "definition": "adj. 恰当的；有…倾向的；灵敏的 n. (Apt)人名；(法、波、英)阿普特"}, {"word": "arrogant", "phonetic": "/ˈærəgənt/", "definition": "adj. 自大的，傲慢的"}, {"word": "artery", "phonetic": "/ˈa:təri/", "definition": "n. 动脉；干道；主流"}, {"word": "articulate", "phonetic": "/a:ˈtɪkjʊleɪt/", "definition": "adj. 发音清晰的；口才好的；有关节的 vt. 清晰地发（音）；明确有力地表达；用关节连接；使相互连贯 vi. 发音；清楚地讲话；用关节连接起来 n. 动物学有节体的动物"}, {"word": "aspire", "phonetic": "/əˈspaɪə/", "definition": "vi. 渴望；立志；追求"}, {"word": "assassinate", "phonetic": "/əˈsæsɪneɪt/", "definition": "vt. 暗杀；行刺"}, {"word": "assault", "phonetic": "/əˈsɔ:lt/", "definition": "n. 攻击；袭击 vt. 攻击；袭击 vi. 袭击；动武"}, {"word": "attendant", "phonetic": "/əˈtendənt/", "definition": "n. 服务员，侍者；随员，陪从 adj. 伴随的；侍候的"}, {"word": "attorney", "phonetic": "/əˈtɜ:ni/", "definition": "n. 律师；代理人；检查官"}, {"word": "auction", "phonetic": "/ˈɔ:kʃn/", "definition": "n. 拍卖 vt. 拍卖；竞卖"}, {"word": "audit", "phonetic": "/ˈɔ:dɪt/", "definition": "n. 审计；[审计] 查账 vt. （美）旁听 vi. 审计；[审计] 查账"}, {"word": "auditorium", "phonetic": "/ˌɔ:dɪˈtɔ:riəm/", "definition": "n. 礼堂，会堂；观众席"}, {"word": "augment", "phonetic": "/ɔ:gˈment/", "definition": "n. 增加；增大 vt. 增加；增大 vi. 增加；增大"}, {"word": "aural", "phonetic": "/ˈɔ:rəl/", "definition": "n. (Aural)人名；(西)奥拉尔 adj. 听觉的；耳的；气味的；先兆的"}, {"word": "autonomy", "phonetic": "/ɔ:ˈtɒnəmi/", "definition": "n. 自治，自治权"}, {"word": "avail", "phonetic": "/əˈveɪl/", "definition": "vi. 有益于 vt. 有益于 n. 效用，利益"}, {"word": "avert", "phonetic": "/əˈvɜ:t/", "definition": "vt. 避免，防止；转移"}, {"word": "bachelor", "phonetic": "/ˈbætʃələ/", "definition": "n. 学士；单身汉；（尚未交配的）小雄兽 n. (Bachelor)人名；(英)巴彻勒"}, {"word": "baggage", "phonetic": "/ˈbægɪdʒ/", "definition": "n. 行李；[交] 辎重（军队的）"}, {"word": "bail", "phonetic": "/beɪl/", "definition": "n. 保释；保释人；保释金；杓 vt. 保释；帮助某人脱离困境；往外舀水 n. (Bail)人名；(英)贝尔；(法)巴伊"}, {"word": "bake", "phonetic": "/beɪk/", "definition": "n. 烤；烘烤食品 vi. 烘面包；被烤干；受热 vt. 烤；烘焙 n. (Bake)人名"}, {"word": "bald", "phonetic": "/bɔ:ld/", "definition": "adj. 秃顶的；光秃的；单调的；无装饰的 vi. 变秃 n. (Bald)人名；(英)鲍尔德；(德、法、波)巴尔德"}, {"word": "barber", "phonetic": "/ˈba:bə/", "definition": "n. 理发师 vt. 为…理发；修整 vi. 当理发师 n. (Barber)人名；(西)巴尔韦尔；(英)巴伯；(罗)巴尔伯"}, {"word": "barrel", "phonetic": "/ˈbærəl/", "definition": "n. 桶；枪管，炮管 vt. 把……装入桶内 vi. 快速移动 n. (Barrel)人名；(法、意)巴雷尔"}, {"word": "batch", "phonetic": "/bætʃ/", "definition": "n. 一批；一炉；一次所制之量 vt. 分批处理 n. (Batch)人名；(英)巴奇"}, {"word": "bean", "phonetic": "/bi:n/", "definition": "n. 豆；嘴峰；毫无价值的东西 vt. 击…的头部 n. (Bean)人名；(英)比恩"}, {"word": "bearing", "phonetic": "/ˈbeərɪŋ/", "definition": "n. [机] 轴承；关系；方位；举止 v. 忍受（bear的ing形式）"}, {"word": "beast", "phonetic": "/bi:st/", "definition": "n. 野兽；畜生，人面兽心的人"}, {"word": "bewilder", "phonetic": "/bɪˈwɪldər/", "definition": "vt. 使迷惑，使不知所措"}, {"word": "bizarre", "phonetic": "/bɪˈza:r/", "definition": "adj. 奇异的"}, {"word": "blast", "phonetic": "/bla:st/", "definition": "n. 爆炸；冲击波；一阵 vt. 爆炸；损害；使枯萎 vi. 猛攻 n. (Blast)人名"}, {"word": "blaze", "phonetic": "/bleɪz/", "definition": "n. 火焰，烈火；光辉；情感爆发 vt. 在树皮上刻路标；公开宣布 vi. 燃烧；照耀，发光；激发 n. (Blaze)人名；(法)布拉兹；(马其)布拉热"}, {"word": "bleak", "phonetic": "/bli:k/", "definition": "adj. 阴冷的；荒凉的，无遮蔽的；黯淡的，无希望的；冷酷的；单调的"}, {"word": "blunder", "phonetic": "/ˈblʌn.dər/", "definition": "n. 大错 vt. 做错 vi. 跌跌撞撞地走；犯大错"}, {"word": "blur", "phonetic": "/blɜ:/", "definition": "n. 污迹；模糊不清的事物 vt. 涂污；使…模糊不清；使暗淡；玷污 vi. 沾上污迹；变模糊"}, {"word": "boast", "phonetic": "/bəʊst/", "definition": "n. 自夸；值得夸耀的事物，引以为荣的事物 vi. 自吹自擂 vt. 夸口说，自吹自擂说；以有…而自豪 n. (Boast)人名；(英)博斯特"}, {"word": "bold", "phonetic": "/bəʊld/", "definition": "adj. 大胆的，英勇的；黑体的；厚颜无耻的；险峻的 n. (Bold)人名；(英、德、罗、捷、瑞典)博尔德"}, {"word": "bolt", "phonetic": "/bəʊlt/", "definition": "n. 螺栓，螺钉；闪电，雷电；门闩；弩箭;（布的）一匹，一卷 vt. 筛选；囫囵吞下；（把门、窗等）闩上；突然说出，脱口而出 vi. （门窗等）闩上，拴住；冲出，跳出；（马等的）脱缰；囫囵吞下 adv. 突然地；像箭似地；直立地"}, {"word": "bond", "phonetic": "/bɒnd/", "definition": "n. 债券；结合；约定；粘合剂；纽带 vt. 使结合；以…作保 vi. 结合，团结在一起 n. (Bond)人名；(英、德、西、刚(金)、瑞典)邦德"}, {"word": "botany", "phonetic": "/ˈbɒtəni/", "definition": "n. 植物学；地区植物总称"}, {"word": "bowel", "phonetic": "/ˈbaʊəl/", "definition": "n. 肠；内部；同情 vt. 将……的肚肠取出"}, {"word": "brace", "phonetic": "/breɪs/", "definition": "n. 支柱；[语] 大括号；曲柄 vt. 支撑；振作起来；激励；撑牢 adj. 曲柄的 vi. 支持；打起精神 n. (Brace)人名；(英)布雷斯；(法)布拉斯"}, {"word": "bracket", "phonetic": "/ˈbrækɪt/", "definition": "n. 支架；括号；墙上凸出的托架 vt. 括在一起；把…归入同一类；排除"}, {"word": "bribe", "phonetic": "/braɪb/", "definition": "n. 贿赂 vt. 贿赂，收买 vi. 行贿 n. (Bribe)人名；(西)布里韦"}, {"word": "briefcase", "phonetic": "/ˈbri:fkeɪs/", "definition": "n. 公文包"}, {"word": "brilliant", "phonetic": "/ˈbrɪliənt/", "definition": "adj. 灿烂的，闪耀的；杰出的；有才气的；精彩的，绝妙的"}, {"word": "broker", "phonetic": "/ˈbrəʊkə/", "definition": "n. 经纪人；掮客 vt. 以中间人等身分安排... vi. 作为权力经纪人进行谈判 n. (Broker)人名；(英)布罗克；(俄)布罗克尔"}, {"word": "bronze", "phonetic": "/brɒnz/", "definition": "n. 青铜；古铜色；青铜制品 adj. 青铜色的；青铜制的 vt. 镀青铜于 vi. 变成青铜色，被晒黑 n. (Bronze)人名；(葡)布龙泽"}, {"word": "broom", "phonetic": "/bru:m/", "definition": "n. 扫帚；金雀花 vt. 扫除 vi. 桩顶开花或开裂 n. (Broom)人名；(英)布鲁姆"}, {"word": "brow", "phonetic": "/braʊ/", "definition": "n. 眉，眉毛；额；表情 n. (Brow)人名；(西)布劳"}, {"word": "bruise", "phonetic": "/bru:z/", "definition": "n. 擦伤；挫伤；青肿 vt. 使受瘀伤；使受挫伤 vi. 擦伤；受伤"}, {"word": "brush", "phonetic": "/brʌʃ/", "definition": "n. 刷子；画笔；毛笔；争吵；与某人有效冲突；灌木丛地带；矮树丛；狐狸尾巴 vi. 刷；擦过；掠过；（经过时）轻触 vt. 刷；画；"}, {"word": "brutal", "phonetic": "/ˈbru:tl/", "definition": "adj. 残忍的；野蛮的，不讲理的"}, {"word": "bud", "phonetic": "/bʌd/", "definition": "n. 芽，萌芽；蓓蕾 vt. 使发芽 vi. 发芽，萌芽 n. (Bud)人名；(英)巴德；(中)布特(蒙语·汉语拼音)；(罗、匈)布德"}, {"word": "bulb", "phonetic": "/bʌlb/", "definition": "n. 电灯泡；鳞茎；球状物 vi. 生球茎；膨胀成球状"}, {"word": "bulk", "phonetic": "/bʌlk/", "definition": "n. 体积，容量；大多数，大部分；大块 vt. 使扩大，使形成大量；使显得重要 n. (Bulk)人名；(土)布尔克"}, {"word": "bullet", "phonetic": "/ˈbʊlɪt/", "definition": "n. 子弹；只选某党全部候选人的投票；豆子 vi. 射出；迅速行进 n. (Bullet)人名；(法)比莱"}, {"word": "bulletin", "phonetic": "/ˈbʊlɪtɪn/", "definition": "n. 公告，公报 vt. 公布，公告"}, {"word": "bundle", "phonetic": "/ˈbʌndl/", "definition": "n. 束；捆 vt. 捆 vi. 匆忙离开"}, {"word": "bureau", "phonetic": "/ˈbjʊərəʊ/", "definition": "n. 局，处；衣柜；办公桌 n. (Bureau)人名；(法)比罗"}, {"word": "bureaucracy", "phonetic": "/bjʊəˈrɒkrəsi/", "definition": "n. 官僚主义；官僚机构；官僚政治"}, {"word": "burglar", "phonetic": "/ˈbɜ:glər/", "definition": "n. 夜贼，窃贼"}, {"word": "cabin", "phonetic": "/ˈkæbɪn/", "definition": "n. 小屋；客舱；船舱 vt. 把…关在小屋里 vi. 住在小屋里 n. (Cabin)人名；(法)卡班"}, {"word": "cable", "phonetic": "/ˈkeɪbəl/", "definition": "n. 缆绳；电缆；海底电报 vt. 打电报 vi. 打海底电报"}, {"word": "calcium", "phonetic": "/ˈkælsiəm/", "definition": "n. 钙"}, {"word": "canoe", "phonetic": "/kəˈnu:/", "definition": "n. 独木舟；轻舟 vi. 乘独木舟 vt. 用独木舟运"}, {"word": "cardinal", "phonetic": "/ˈka:dɪnl/", "definition": "adj. 主要的，基本的；深红色的 n. 红衣主教；枢机主教；鲜红色；鸟类(北美)主红雀"}, {"word": "carnival", "phonetic": "/ˈka:nɪvl/", "definition": "n. 狂欢节，嘉年华会；饮宴狂欢"}, {"word": "cart", "phonetic": "/ka:t/", "definition": "n. 二轮运货马车 vt. 用车装载 vi. 驾运货马车；用运货车运送 n. (Cart)人名；(法)卡尔；(英、芬)卡特"}, {"word": "casualty", "phonetic": "/ˈkæʒuəlti/", "definition": "n. 伤亡人员；意外事故；急诊室"}, {"word": "catalogue", "phonetic": "/ˈkætəlɒg/", "definition": "n. 目录；（美）大学情况一览 vt. 把…编入目录"}, {"word": "catastrophe", "phonetic": "/kəˈtæstrəfi/", "definition": "n. 大灾难；大祸；惨败"}, {"word": "cathedral", "phonetic": "/kəˈθi:drəl/", "definition": "n. 大教堂"}, {"word": "cellar", "phonetic": "/ˈselə/", "definition": "n. 地窖；酒窖；地下室 vt. 把…藏入地窖 n. (Cellar)人名；(捷)采拉尔"}, {"word": "cemetery", "phonetic": "/ˈsemətri/", "definition": "n. 墓地；公墓"}, {"word": "census", "phonetic": "/ˈsensəs/", "definition": "n. 人口普查，人口调查 vt. 实施统计调查"}, {"word": "certify", "phonetic": "/ˈsɜ:tɪfaɪ/", "definition": "v. 证明；保证"}, {"word": "chapter", "phonetic": "/ˈtʃæptə/", "definition": "n. 章，回；（俱乐部、协会等的）分会；人生或历史上的重要时期 vt. 把…分成章节"}, {"word": "chill", "phonetic": "/tʃɪl/", "definition": "n. 寒冷；寒意；寒心 vt. 冷冻，冷藏；使寒心；使感到冷 adj. 寒冷的；冷漠的；扫兴的 vi. 冷藏；变冷"}, {"word": "chimney", "phonetic": "/ˈtʃɪmni/", "definition": "n. 烟囱"}, {"word": "chronic", "phonetic": "/ˈkrɒnɪk/", "definition": "adj. 慢性的；长期的；习惯性的 n. (Chronic)人名；(英)克罗尼克"}, {"word": "chunk", "phonetic": "/tʃʌŋk/", "definition": "n. 大块；矮胖的人或物"}, {"word": "circuit", "phonetic": "/ˈsɜ:kɪt/", "definition": "n. 电路，回路；巡回；一圈；环道 vt. 绕回…环行 vi. 环行"}, {"word": "circular", "phonetic": "/ˈsɜ:kjələ/", "definition": "n. 通知，传单 adj. 循环的；圆形的；间接的"}, {"word": "circus", "phonetic": "/ˈsɜ:kəs/", "definition": "n. 马戏；马戏团"}, {"word": "civil", "phonetic": "/ˈsɪvəl/", "definition": "adj. 公民的；民间的；文职的；有礼貌的；根据民法的 n. (Civil)人名；(土)吉维尔；(法)西维尔"}, {"word": "clasp", "phonetic": "/kla:sp/", "definition": "n. 扣子，钩子；握手 vt. 紧抱；扣紧；紧紧缠绕 vi. 扣住"}, {"word": "clergy", "phonetic": "/ˈklɜ:dʒi/", "definition": "n. 神职人员；牧师；僧侣"}, {"word": "clerk", "phonetic": "/kla:k/", "definition": "n. 职员，办事员；店员；书记；记账员；<古>牧师，教士 vi. 当销售员，当店员；当职员 n. （英）克拉克（人名）"}, {"word": "cloak", "phonetic": "/kləʊk/", "definition": "n. 斗蓬；宽大外衣；托词 vt. 遮掩；隐匿 n. (Cloak)人名；(英)克洛克"}, {"word": "closet", "phonetic": "/ˈklɒzɪt/", "definition": "n. 壁橱；议事室，密室；小房间 adj. 秘密的，私下的；空谈的 vt. 把…关在私室中 n. (Closet)人名；(法)克洛塞"}, {"word": "coalition", "phonetic": "/ˌkəʊəˈlɪʃən/", "definition": "n. 联合；结合；合并"}, {"word": "coherent", "phonetic": "/kəʊˈhɪərənt/", "definition": "adj. 连贯的，一致的；明了的；清晰的；凝聚性的；互相耦合的；粘在一起的"}, {"word": "coil", "phonetic": "/kɔɪl/", "definition": "n. 线圈；卷 vt. 盘绕，把…卷成圈 vi. 成圈状 n. (Coil)人名；(英)科伊尔"}, {"word": "coincide", "phonetic": "/ˌkəʊɪnˈsaɪd/", "definition": "vi. 一致，符合；同时发生 vi. (在性格、品质等方面)完全一致，相符"}, {"word": "collar", "phonetic": "/ˈkɒl.ər/", "definition": "n. 衣领；颈圈 vt. 抓住；给…上领子；给…套上颈圈 n. (Collar)人名；(法)科拉尔；(西)科利亚尔；(英)科勒"}, {"word": "commemorate", "phonetic": "/kəˈmeməreɪt/", "definition": "vt. 庆祝，纪念；成为…的纪念"}, {"word": "commence", "phonetic": "/kəˈmens/", "definition": "v. 开始；着手；<英>获得学位"}, {"word": "commend", "phonetic": "/kəˈmend/", "definition": "vt. 推荐；称赞；把…委托 vi. 称赞；表扬"}, {"word": "comment", "phonetic": "/ˈkɒment/", "definition": "n. 评论；意见；批评 vi. 发表评论；发表意见 vt. 为…作评语 n. (Comment)人名；(德)科门特；(法)科芒"}, {"word": "commodity", "phonetic": "/kəˈmɒdəti/", "definition": "n. 商品，货物；日用品"}, {"word": "commute", "phonetic": "/kəˈmju:t/", "definition": "n. 通勤（口语） vt. 减刑；交换；用……交换；使……变成 vi. （搭乘车、船等）通勤；代偿"}, {"word": "compartment", "phonetic": "/kəmˈpa:tmənt/", "definition": "n. 隔间；区划；卧车上的小客房 vt. 分隔；划分"}, {"word": "compassion", "phonetic": "/kəmˈpæʃən/", "definition": "n. 同情；怜悯"}, {"word": "compatible", "phonetic": "/kəmˈpætəbl/", "definition": "adj. 兼容的；能共处的；可并立的"}, {"word": "compel", "phonetic": "/kəmˈpel/", "definition": "vt. 强迫，迫使；强使发生 n. (Compel)人名；(法)孔佩尔"}, {"word": "competent", "phonetic": "/ˈkɒmpɪtənt/", "definition": "adj. 胜任的；有能力的；能干的；足够的"}, {"word": "complement", "phonetic": "/ˈkɒmplɪmənt/", "definition": "n. 补语；余角；补足物 vt. 补足，补助"}, {"word": "complicate", "phonetic": "/ˈkɒmplɪkeɪt/", "definition": "vt. 使复杂化；使恶化；使卷入"}, {"word": "compliment", "phonetic": "/ˈkɒmplɪmənt/", "definition": "n. 恭维；称赞；问候；致意；道贺 vt. 恭维；称赞"}, {"word": "comply", "phonetic": "/kəmˈplaɪ/", "definition": "vi. 遵守；顺从，遵从；答应"}, {"word": "component", "phonetic": "/kəmˈpəʊnənt/", "definition": "n. 成分；组件；[电子] 元件 adj. 组成的，构成的"}, {"word": "comprehensive", "phonetic": "/ˌkɒmprɪˈhɛnsɪv/", "definition": "n. 综合学校；专业综合测验 adj. 综合的；广泛的；有理解力的"}, {"word": "compress", "phonetic": "/kəmˈpres/", "definition": "vt. 压缩，压紧；精简 vi. 受压缩小"}, {"word": "comprise", "phonetic": "/kəmˈpraɪz/", "definition": "vt. 包含；由…组成"}, {"word": "compulsory", "phonetic": "/kəmˈpʌlsəri/", "definition": "adj. 义务的；必修的；被强制的"}, {"word": "comrade", "phonetic": "/ˈkɒmreɪd/", "definition": "n. 同志，伙伴 n. (Comrade)人名；(尼日利)科姆拉德"}, {"word": "conceal", "phonetic": "/kənˈsi:l/", "definition": "vt. 隐藏；隐瞒"}, {"word": "concede", "phonetic": "/kənˈsi:d/", "definition": "vi. 让步 vt. 承认；退让；给予，容许"}, {"word": "conceive", "phonetic": "/kənˈsi:v/", "definition": "vi. 设想；考虑 vt. 构思；以为；持有；怀孕"}, {"word": "concession", "phonetic": "/kənˈseʃn/", "definition": "n. 让步；特许（权）；承认；退位"}, {"word": "concurrent", "phonetic": "/kənˈkʌrənt/", "definition": "adj. 同时发生的；并发的；一致的 n. [数] 共点；同时发生的事件"}, {"word": "confer", "phonetic": "/kənˈfɜ:(r)/", "definition": "vt. 授予；给予 vi. 协商 n. (Confer)人名；(英)康弗"}, {"word": "confess", "phonetic": "/kənˈfes/", "definition": "vi. 承认；坦白；忏悔；供认 vt. 承认；坦白；忏悔；供认"}, {"word": "conjunction", "phonetic": "/kənˈdʒʌŋkʃn/", "definition": "n. 结合；[语] 连接词；同时发生"}, {"word": "conscience", "phonetic": "/ˈkɒnʃəns/", "definition": "n. 道德心，良心 n. (Conscience)人名；(法)孔西延斯"}, {"word": "conscientious", "phonetic": "/ˌkɒnʃiˈenʃəs/", "definition": "adj. 认真的；尽责的；本着良心的；小心谨慎的"}, {"word": "consecutive", "phonetic": "/kənˈsekjətɪv/", "definition": "adj. 连贯的；连续不断的"}, {"word": "consensus", "phonetic": "/kənˈsensəs/", "definition": "n. 一致；舆论；合意"}, {"word": "consent", "phonetic": "/kənˈsent/", "definition": "n. 同意；（意见等的）一致；赞成 vi. 同意；赞成；答应 n. (Consent)人名；(法)孔桑"}, {"word": "consolidate", "phonetic": "/kənˈsɒlɪdeɪt/", "definition": "vt. 巩固，使固定；联合 vi. 巩固，加强"}, {"word": "conspicuous", "phonetic": "/kənˈspɪkjuəs/", "definition": "adj. 显著的；显而易见的"}, {"word": "conspiracy", "phonetic": "/kənˈspɪrəsi/", "definition": "n. 阴谋；共谋；阴谋集团"}, {"word": "conspire", "phonetic": "/kənˈspaɪə/", "definition": "vi. 共谋；协力 vt. [法] 密谋策划"}, {"word": "constant", "phonetic": "/ˈkɒnstənt/", "definition": "n. [数] 常数；恒量 adj. 不变的；恒定的；经常的 n. (Constant)人名；(德)康斯坦特"}, {"word": "constituent", "phonetic": "/kənˈstɪtjuənt/", "definition": "n. 成分；选民；委托人 adj. 构成的；选举的"}, {"word": "constitution", "phonetic": "/ˌkɒnstɪˈtju:ʃn/", "definition": "n. 宪法；体制；章程；构造；建立，组成；体格"}, {"word": "constrain", "phonetic": "", "definition": "vt. 驱使；强迫；束缚"}, {"word": "contact", "phonetic": "/ˈkɒntækt/", "definition": "n. 接触，联系 vt. 使接触，联系 vi. 使接触，联系"}, {"word": "contagious", "phonetic": "/kənˈteɪdʒəs/", "definition": "adj. 感染性的；会蔓延的"}, {"word": "contaminate", "phonetic": "/kənˈtæmɪneɪt/", "definition": "vt. 污染，弄脏"}, {"word": "contemplate", "phonetic": "/ˈkɒntəmpleɪt/", "definition": "vt. 沉思；注视；思忖；预期 vi. 冥思苦想；深思熟虑"}, {"word": "contempt", "phonetic": "/kənˈtempt/", "definition": "n. 轻视，蔑视；耻辱"}, {"word": "contend", "phonetic": "/kənˈtend/", "definition": "vi. 竞争；奋斗；斗争；争论 vt. 主张；为...斗争"}, {"word": "contingent", "phonetic": "/kənˈtɪndʒənt/", "definition": "n. 分遣队；偶然事件；分得部分；代表团 adj. 因情况而异的；不一定的；偶然发生的；可能的；依情况而定的；偶然的；[逻]有条件的"}, {"word": "contract", "phonetic": "/ˈkɒntrækt/", "definition": "n. 合同；婚约 vt. 感染；订约；使缩短 vi. 收缩；感染；订约"}, {"word": "contrive", "phonetic": "/kənˈtraɪv/", "definition": "vt. 设计；发明；图谋 vi. 谋划；设法做到"}, {"word": "convene", "phonetic": "/kənˈvi:n/", "definition": "vt. 召集，集合；传唤 vi. 聚集，集合"}, {"word": "converge", "phonetic": "/kənˈvɜ:dʒ/", "definition": "vt. 使汇聚 vi. 聚集；靠拢；收敛"}, {"word": "convert", "phonetic": "/kənˈvɜ:t/", "definition": "n. 皈依者；改变宗教信仰者 vt. 使转变；转换…；使…改变信仰 vi. 转变，变换；皈依；改变信仰 n. (Convert)人名；(法)孔韦尔"}, {"word": "convict", "phonetic": "/kənˈvɪkt/", "definition": "n. 罪犯 vt. 证明…有罪；宣告…有罪"}, {"word": "coordinate", "phonetic": "/kəʊˈɔ:dɪneɪt/", "definition": "n. 坐标；同等的人或物 vt. 调整；整合 adj. 并列的；同等的 vi. 协调"}, {"word": "coordination", "phonetic": "/kəʊˌɔ:dɪˈneɪʃn/", "definition": "n. 协调，调和；对等，同等"}, {"word": "cop", "phonetic": "/kɒp/", "definition": "n. 巡警，警官 vt. 抓住 n. (Cop)人名；(塞、捷)措普；(土)焦普"}, {"word": "copper", "phonetic": "/ˈkɒpə/", "definition": "n. 铜；铜币；警察 adj. 铜制的 vt. 镀铜 n. (Copper)人名；(英)科珀"}, {"word": "cordial", "phonetic": "/ˈkɔ:diəl/", "definition": "n. 补品；兴奋剂；甜香酒，甘露酒 adj. 热忱的，诚恳的；兴奋的"}, {"word": "correlate", "phonetic": "/ˈkɒrəleɪt/", "definition": "n. 相关物；相关联的人 vt. 使有相互关系；互相有关系 adj. 关联的 vi. 关联"}, {"word": "corridor", "phonetic": "/ˈkɒr.ɪ.dɔ:r/", "definition": "走廊"}, {"word": "corrode", "phonetic": "/kəˈrəʊd/", "definition": "vt. 侵蚀；损害 vi. 受腐蚀；起腐蚀作用"}, {"word": "corrupt", "phonetic": "/kəˈrʌpt/", "definition": "adj. 腐败的，贪污的；堕落的 vt. 使腐烂；使堕落 vi. 堕落，腐化；腐烂"}, {"word": "cosmos", "phonetic": "/ˈkɒzmɒs/", "definition": "n. 宇宙；和谐；秩序；大波斯菊 n. (Cosmos)人名；(法)科斯莫斯"}, {"word": "cotton", "phonetic": "/ˈkɒtn/", "definition": "n. 棉花；棉布；棉线 adj. 棉的；棉制的 vi. 一致；理解；和谐；亲近 n. (Cotton)人名；(英、西、葡)科顿；(法)戈登"}, {"word": "couch", "phonetic": "/kaʊtʃ/", "definition": "vt. 使躺下；表达；弯下 vi. 蹲伏，埋伏；躺着 n. 睡椅，长沙发；床；卧榻 n. (Couch)人名；(英)库奇"}, {"word": "council", "phonetic": "/ˈkaʊnsl/", "definition": "n. 委员会；会议；理事会；地方议会；顾问班子 n. (Council)人名；(英)康斯尔"}, {"word": "counsel", "phonetic": "/ˈkaʊnsl/", "definition": "n. 法律顾问；忠告；商议；讨论；决策 vt. 建议；劝告 vi. 商讨；提出忠告"}, {"word": "counterpart", "phonetic": "/ˈkaʊntəpa:t/", "definition": "n. 副本；配对物；极相似的人或物"}, {"word": "coupon", "phonetic": "/ˈku:pɒn/", "definition": "n. 息票；赠券；配给券;  优惠券"}, {"word": "courtesy", "phonetic": "/ˈkɜ:təsi/", "definition": "n. 礼貌；好意；恩惠 adj. 殷勤的；被承认的；出于礼节的"}, {"word": "coward", "phonetic": "/ˈkaʊəd/", "definition": "n. 懦夫，懦弱的人 adj. 胆小的，懦怯的 n. (Coward)人名；(英)科沃德"}, {"word": "cradle", "phonetic": "/ˈkreɪdl/", "definition": "n. 摇篮；发源地；发祥地；支船架 vt. 抚育；把...搁在支架上；把...放在摇篮内"}, {"word": "craft", "phonetic": "/kra:ft/", "definition": "n. 工艺；手艺；太空船 vt. 精巧地制作 n. (Craft)人名；(英、德、罗)克拉夫特"}, {"word": "crane", "phonetic": "/kreɪn/", "definition": "n. 吊车，起重机；鹤 vt. 用起重机起吊；伸长脖子 vi. 伸着脖子看；迟疑，踌躇 n. (Crane)人名；(意、葡)克拉内；(英、法、西)克兰"}, {"word": "crash", "phonetic": "/kræʃ/", "definition": "n. 撞碎；坠毁；破产；轰隆声；睡觉 vi. 摔碎；坠落；发出隆隆声；(金融企业等)破产 vt. 打碎；使坠毁、撞坏；擅自闯入"}, {"word": "creep", "phonetic": "/kri:p/", "definition": "n. 爬行；毛骨悚然的感觉；谄媚者 vi. 爬行；蔓延；慢慢地移动；起鸡皮疙瘩"}, {"word": "cricket", "phonetic": "/ˈkrɪkɪt/", "definition": "n. 板球；板球运动；蟋蟀"}, {"word": "crisp", "phonetic": "/krɪsp/", "definition": "adj. 脆的；新鲜的；易碎的 vt. 使卷曲；使发脆 vi. 卷曲；发脆 n. 松脆物；油炸马铃薯片 n. (Crisp)人名；(英)克里斯普"}, {"word": "criterion", "phonetic": "/kraɪˈtɪəriən/", "definition": "n. （批评判断的）标准；准则；规范；准据"}, {"word": "cruel", "phonetic": "", "definition": "adj. 残酷的，残忍的；使人痛苦的，让人受难的；无情的，严酷的"}, {"word": "cruise", "phonetic": "/kru:z/", "definition": "n. 巡航，巡游；乘船游览 vt. 巡航，巡游；漫游 vi. 巡航，巡游；漫游 n. (Cruise)人名；(德)克鲁伊泽；(英)克鲁斯"}, {"word": "crush", "phonetic": "/krʌʃ/", "definition": "n. 粉碎；迷恋；压榨；拥挤的人群 vt. 压碎；弄皱，变形；使…挤入 vi. 挤；被压碎"}, {"word": "crystal", "phonetic": "/ˈkrɪstl/", "definition": "n. 结晶，晶体；水晶；水晶饰品 adj. 水晶的；透明的，清澈的 n. (Crystal)人名；(英)克里斯特尔，克丽丝特尔 (女名)"}, {"word": "culminate", "phonetic": "/ˈkʌlmɪneɪt/", "definition": "vt. 使结束；使达到高潮 vi. 到绝顶；达到高潮；达到顶点"}, {"word": "cumulative", "phonetic": "/ˈkju:mjələtɪv/", "definition": "adj. 累积的"}, {"word": "cunning", "phonetic": "/ˈkʌnɪŋ/", "definition": "n. 狡猾 adj. 狡猾的；巧妙的；可爱的"}, {"word": "cupboard", "phonetic": "/ˈkʌbəd/", "definition": "n. 碗柜；食橱"}, {"word": "curb", "phonetic": "/kɜ:b/", "definition": "n. 抑制；路边；勒马绳 vt. 控制；勒住"}, {"word": "curl", "phonetic": "/kɜ:l/", "definition": "n. 卷曲；卷发；螺旋状物 n. (Curl)人名；(英)柯尔 vt. 使…卷曲；使卷起来 vi. 卷曲；盘绕"}, {"word": "curriculum", "phonetic": "/kəˈrɪkjʊləm/", "definition": "n. 课程 总课程"}, {"word": "curse", "phonetic": "/kɜ:s/", "definition": "n. 诅咒；咒骂 vt. 诅咒；咒骂 vi. 诅咒；咒骂"}, {"word": "custody", "phonetic": "/ˈkʌstədi/", "definition": "n. 保管；监护；拘留；抚养权"}, {"word": "cylinder", "phonetic": "/ˈsɪlɪndə/", "definition": "n. 圆筒；汽缸；[数] 柱面；圆柱状物"}, {"word": "dairy", "phonetic": "/ˈdeəri/", "definition": "n. 奶制品；乳牛；制酪场；乳品店；牛奶及乳品业 adj. 乳品的；牛奶的；牛奶制的；产乳的"}, {"word": "darling", "phonetic": "/ˈda:.lɪŋ/", "definition": "n. 心爱的人；亲爱的；n. (Darling)人名；(英)达林"}, {"word": "debut", "phonetic": "/ˈdeɪbju:/", "definition": "n. 初次登台；开张 vi. 初次登台 n. (Debut)人名；(法)德比"}, {"word": "decay", "phonetic": "/dɪˈkeɪ/", "definition": "n. 衰退，[核] 衰减；腐烂，腐朽 vt. 使腐烂，使腐败；使衰退，使衰落 vi. 衰退，[核] 衰减；腐烂，腐朽 n. (Decay)人名；(法)德凯"}, {"word": "decent", "phonetic": "/ˈdi:snt/", "definition": "adj. 正派的；得体的；相当好的"}, {"word": "decimal", "phonetic": "/ˈdesɪml/", "definition": "n. 小数 adj. 小数的；十进位的"}, {"word": "deed", "phonetic": "/di:d/", "definition": "n. 行动；功绩；证书；[法] 契据 vt. 立契转让"}, {"word": "defect", "phonetic": "/dɪˈfekt/", "definition": "n. 缺点，缺陷；不足之处 vi. 变节；叛变"}, {"word": "defective", "phonetic": "/dɪˈfek.tɪv/", "definition": "adj. 有缺陷的；不完美的 n. 有缺陷的人；不完全变化词"}, {"word": "deficiency", "phonetic": "/dɪˈfɪʃnsi/", "definition": "n. 缺陷，缺点；缺乏；不足的数额"}, {"word": "defy", "phonetic": "/dɪˈfaɪ/", "definition": "n. 挑战；对抗 vt. 藐视；公然反抗；挑衅；使落空"}, {"word": "degenerate", "phonetic": "/dɪˈdʒenərət/", "definition": "n. 堕落的人 adj. 退化的；堕落的 vi. 退化；堕落 vt. 使退化；恶化"}, {"word": "dental", "phonetic": "/ˈden.təl/", "definition": "n. 齿音 adj. 牙科的；牙齿的，牙的"}, {"word": "deplete", "phonetic": "/dɪˈpli:t/", "definition": "vt. 耗尽，用尽；使衰竭，使空虚"}, {"word": "deplore", "phonetic": "/dɪˈplɔ:/", "definition": "vt. 谴责；悲悼；哀叹；对…深感遗憾"}, {"word": "deploy", "phonetic": "/dɪˈplɔɪ/", "definition": "vt. 配置；展开 n. 部署 vi. 部署；使疏开"}, {"word": "deposit", "phonetic": "/dɪˈpɒzɪt/", "definition": "n. 存款；押金；订金；保证金；沉淀物 vt. 使沉积；存放 vi. 沉淀"}, {"word": "derive", "phonetic": "/dɪˈraɪv/", "definition": "vt. 源于；得自；获得 vi. 起源 n. (Derive)人名；(法)德里夫"}, {"word": "descendant", "phonetic": "/dɪˈsɛndənt/", "definition": "n. 后裔；子孙 adj. 下降的；祖传的"}, {"word": "despise", "phonetic": "/dɪˈspaɪz/", "definition": "vt. 轻视，鄙视"}, {"word": "detain", "phonetic": "/dɪˈteɪn/", "definition": "vt. 拘留；留住；耽搁"}, {"word": "deter", "phonetic": "/dɪˈtɜ:/", "definition": "vt. 制止，阻止；使打消念头 n. (Deter)人名；(德)德特尔"}, {"word": "deteriorate", "phonetic": "/dɪˈtɪəriəreɪt/", "definition": "vi. 恶化，变坏 vt. 恶化"}, {"word": "detest", "phonetic": "/dɪˈtest/", "definition": "vt. 厌恶；憎恨"}, {"word": "deviate", "phonetic": "/ˈdi:vieɪt/", "definition": "vi. 脱离；越轨 vt. 使偏离"}, {"word": "diagnose", "phonetic": "/ˈdaɪ.əg.nəʊz/", "definition": "vt. 诊断；断定 vi. 诊断；判断"}, {"word": "diagnostic", "phonetic": "/ˌdaɪəgˈnɒstɪk/", "definition": "n. 诊断法；诊断结论 adj. 诊断的；特征的"}, {"word": "dialect", "phonetic": "/ˈdaɪəlekt/", "definition": "n. 方言，土话；同源语；行话；个人用语特征 adj. 方言的"}, {"word": "diary", "phonetic": "/ˈdaɪəri/", "definition": "n. 日志，日记；日记簿"}, {"word": "dictation", "phonetic": "/dɪkˈteɪʃn/", "definition": "n. 听写；口述；命令"}, {"word": "diffuse", "phonetic": "/dɪˈfju:z/", "definition": "vt. 扩散；传播；漫射 adj. 弥漫的；散开的 vi. 传播；四散"}, {"word": "dim", "phonetic": "/dɪm/", "definition": "adj. 暗淡的，昏暗的；模糊的，看不清的；悲观的，怀疑的 vt. 使暗淡；使变模糊 vi. 变模糊，变暗淡 n. 笨蛋，傻子；(Dim)人名"}, {"word": "diplomat", "phonetic": "/ˈdɪpləmæt/", "definition": "n. 外交家，外交官；有外交手腕的人；处事圆滑机敏的人"}, {"word": "directory", "phonetic": "/daɪˈrektəri/", "definition": "n. 目录；工商名录；姓名地址录 adj. 指导的；咨询的"}, {"word": "discard", "phonetic": "/dɪˈska:d/", "definition": "n. 抛弃；被丢弃的东西或人 vt. 抛弃；放弃；丢弃 vi. 放弃"}, {"word": "discern", "phonetic": "/dɪˈsɜ:n/", "definition": "vt. 识别；领悟，认识 vi. 看清楚，辨别"}, {"word": "discharge", "phonetic": "/dɪsˈtʃa:dʒ/", "definition": "n. 排放；卸货；解雇 vt. 解雇；卸下；放出；免除 vi. 排放；卸货；流出"}, {"word": "disclose", "phonetic": "", "definition": "vt. 公开；揭露"}, {"word": "discourse", "phonetic": "/ˈdɪskɔ:s/", "definition": "n. 论述；谈话；演讲 vt. 说出；演奏出 vi. 演说；谈论；讲述"}, {"word": "discreet", "phonetic": "/dɪˈskri:t/", "definition": "adj. 谨慎的；小心的"}, {"word": "discrepancy", "phonetic": "/dɪˈskrepənsi/", "definition": "n. 不符；矛盾；相差"}, {"word": "discrete", "phonetic": "/dɪˈskri:t/", "definition": "n. 分立元件；独立部件 adj. 离散的，不连续的"}, {"word": "discretion", "phonetic": "/dɪˈskrɛʃn/", "definition": "n. 自由裁量权；谨慎；判断力；判定；考虑周到"}, {"word": "disgrace", "phonetic": "/dɪsˈgreɪs/", "definition": "n. 耻辱；丢脸的人或事；失宠 vt. 使……失宠；给……丢脸；使……蒙受耻辱；贬黜"}, {"word": "disguise", "phonetic": "/dɪsˈgaɪz/", "definition": "n. 伪装；假装；用作伪装的东西 vt. 掩饰；假装；隐瞒"}, {"word": "disgust", "phonetic": "/dɪsˈgʌst/", "definition": "n. 厌恶，嫌恶 vt. 使厌恶；使作呕"}, {"word": "dispatch", "phonetic": "/dɪˈspætʃ/", "definition": "n. 派遣；急件 vt. 派遣；分派"}, {"word": "disperse", "phonetic": "/dɪˈspɜ:s/", "definition": "vt. 分散；使散开；传播 adj. 分散的 vi. 分散"}, {"word": "disposal", "phonetic": "/dɪˈspəʊzəl/", "definition": "n. 处理；支配；清理；安排"}, {"word": "disposition", "phonetic": "/ˌdɪspəˈzɪʃn/", "definition": "n. 处置；性情；[军] 部署；倾向"}, {"word": "dispute", "phonetic": "/dɪˈspju:t/", "definition": "n. 辩论；争吵 vt. 辩论；怀疑；阻止；抗拒 vi. 争论"}, {"word": "disrupt", "phonetic": "/dɪsˈrʌpt/", "definition": "vt. 破坏；使中断；使瓦解；使分裂；使陷于混乱 adj. 分裂的，中断的；分散的"}, {"word": "dissipate", "phonetic": "/ˈdɪsɪpeɪt/", "definition": "vi. 驱散；放荡 vt. 浪费；使…消散"}, {"word": "dissolve", "phonetic": "/dɪˈzɒlv/", "definition": "n. 叠化画面；画面的溶暗 vt. 使溶解；使分解；使液化 vi. 溶解；解散；消失"}, {"word": "distort", "phonetic": "/dɪˈstɔ:t/", "definition": "vt. 扭曲；使失真；曲解 vi. 扭曲；变形"}, {"word": "district", "phonetic": "/ˈdɪstrɪkt/", "definition": "n. 区域；地方；行政区"}, {"word": "diversion", "phonetic": "/daɪˈvɜ:ʃən/", "definition": "n. 转移；消遣；分散注意力"}, {"word": "divine", "phonetic": "/dɪˈvaɪn/", "definition": "n. 牧师；神学家 adj. 神圣的；非凡的；天赐的；极好的 vt. 占卜；预言；用占卜勘探 vi. 占卜；预言；使用占卜勘探矿 n. (Divine)人名；(英)迪万"}, {"word": "documentary", "phonetic": "/ˌdɒkjʊˈmentəri/", "definition": "n. 纪录片 adj. 记录的；文件的；记实的"}, {"word": "dominant", "phonetic": "/ˈdɒmɪnənt/", "definition": "n. 显性 adj. 显性的；占优势的；支配的，统治的"}, {"word": "dominate", "phonetic": "/ˈdɒmɪneɪt/", "definition": "vt. 控制；支配；占优势；在…中占主要地位 vi. 占优势；处于支配地位"}, {"word": "donkey", "phonetic": "/ˈdɒŋki/", "definition": "n. 驴子；傻瓜；顽固的人"}, {"word": "doorway", "phonetic": "/ˈdɔ:weɪ/", "definition": "n. 门口；途径"}, {"word": "dormant", "phonetic": "/ˈdɔ:mənt/", "definition": "adj. 休眠的；静止的；睡眠状态的；隐匿的 n. (Dormant)人名；(法)多尔芒"}, {"word": "dormitory", "phonetic": "/ˈdɔ:mɪtəri/", "definition": "n. 宿舍，学生宿舍 adj. 住宅区的"}, {"word": "dove", "phonetic": "/dəʊv/", "definition": "n. 鸽子；鸽派人士 v. 潜水（dive的过去式） n. (Dove)人名；(英)达夫；(德、法)多弗"}, {"word": "doze", "phonetic": "/dəʊz/", "definition": "n. 瞌睡 vi. 打瞌睡；假寐 vt. 打瞌睡度过 n. (Doze)人名；(法)多兹"}, {"word": "dramatic", "phonetic": "/drəˈmætɪk/", "definition": "adj. 戏剧的；急剧的；引人注目的；激动人心的"}, {"word": "drastic", "phonetic": "/ˈdræstɪk/", "definition": "n. 烈性泻药 adj. 激烈的；猛烈的"}, {"word": "dread", "phonetic": "/dred/", "definition": "n. 恐惧；可怕的人（或物） vt. 惧怕；担心 adj. 可怕的 vi. 惧怕；担心"}, {"word": "drift", "phonetic": "/drɪft/", "definition": "n. 漂流，漂移；趋势；漂流物 vi. 漂流，漂移；漂泊 vt. 使…漂流；使…受风吹积"}, {"word": "drill", "phonetic": "/drɪl/", "definition": "n. 训练；钻孔机；钻子；播种机 vt. 钻孔；训练；条播 vi. 钻孔；训练 n. (Drill)人名；(德、英)德里尔"}, {"word": "drone", "phonetic": "/drəʊn/", "definition": "n. 雄蜂；嗡嗡的声音；懒惰者 n. 无人机（非正式） n. n. (Drone)人名；(法)德罗纳 vt. 低沉地说 vi. 嗡嗡作声；混日子"}, {"word": "dubious", "phonetic": "/ˈdju:biəs/", "definition": "adj. 可疑的；无把握的；半信半疑的；暧昧的"}, {"word": "dull", "phonetic": "/dʌl/", "definition": "adj. 钝的；迟钝的；无趣的；呆滞的；阴暗的 vt. 使迟钝；使阴暗；缓和 vi. 减少；变迟钝 n. (Dull)人名；(罗、匈)杜尔；(柬)杜；(英)达尔"}, {"word": "dumb", "phonetic": "/dʌm/", "definition": "adj. 哑的，无说话能力的；不说话的，无声音的"}, {"word": "dump", "phonetic": "/dʌmp/", "definition": "n. 垃圾场；仓库；无秩序地累积 vt. 倾倒；倾卸；丢下，卸下；摆脱，扔弃；倾销 vi. 倒垃圾；突然跌倒或落下；卸货；转嫁（责任等） n. （英）邓普（人名，男子教名Humphrey、Humphry的昵称）"}, {"word": "duplicate", "phonetic": "/ˈdju:plɪkeɪt/", "definition": "n. 副本；复制品 adj. 复制的；二重的 vt. 复制；使加倍 vi. 复制；重复"}, {"word": "dwarf", "phonetic": "/dwɔ:f/", "definition": "n. 侏儒，矮子 adj. 矮小的 vi. 变矮小 vt. 使矮小"}, {"word": "dwelling", "phonetic": "/ˈdwelɪŋ/", "definition": "n. 住处；寓所 v. 居住（dwell的现在分词）"}, {"word": "dye", "phonetic": "/daɪ/", "definition": "n. 染料；染色 vt. 染；把…染上颜色 vi. 被染色 n. (Dye)人名；(英)戴伊"}, {"word": "earnest", "phonetic": "/ˈɜ:nɪst/", "definition": "adj. 认真的，热心的；n. 认真；定金；重要的 n. (Earnest)人名；(英)欧内斯特"}, {"word": "eclipse", "phonetic": "/ɪˈklɪps/", "definition": "n. 日蚀，月蚀；黯然失色 vt. 使黯然失色；形成蚀"}, {"word": "eject", "phonetic": "/ɪˈdʒekt/", "definition": "vt. 喷射；驱逐，逐出"}, {"word": "embark", "phonetic": "/ɪmˈba:k/", "definition": "vi. 从事，着手；上船或飞机 vt. 使从事；使上船"}, {"word": "embarrass", "phonetic": "/ɪmˈbærəs/", "definition": "vt. 使局促不安；使困窘；阻碍"}, {"word": "embassy", "phonetic": "/ˈembəsi/", "definition": "n. 大使馆；大使馆全体人员"}, {"word": "embody", "phonetic": "/ɪmˈbɒdi/", "definition": "vt. 体现，使具体化；具体表达 n. (Embody)人名；(英)恩博迪"}, {"word": "eminent", "phonetic": "/ˈemɪnənt/", "definition": "adj. 杰出的；有名的；明显的"}, {"word": "emphasize", "phonetic": "/ˈemfəsaɪz/", "definition": "vt. 强调，着重"}, {"word": "empire", "phonetic": "/ˈempaɪə(r)/", "definition": "n. 帝国；帝王统治，君权 n. (Empire)人名；(法)昂皮尔"}, {"word": "empirical", "phonetic": "/ɪmˈpɪrɪkl/", "definition": "adj. 经验主义的，完全根据经验的；实证的"}, {"word": "endeavour", "phonetic": "/ɪnˈdevə/", "definition": "n. 尽力，竭力 vi. 竭力；企图 vt. 竭力做到，试图或力图（做某事）"}, {"word": "endorse", "phonetic": "/ɪnˈdɔ:s/", "definition": "vt. 背书；认可；签署；赞同；在背面签名"}, {"word": "endow", "phonetic": "/ɪnˈdaʊ/", "definition": "vt. 赋予；捐赠；天生具有"}, {"word": "enroll", "phonetic": "/ɪnˈrəʊl/", "definition": "vi. 参加；登记；注册；记入名册 vt. 登记；使加入；把...记入名册；使入伍"}, {"word": "entail", "phonetic": "/ɪnˈteɪl/", "definition": "vt. 使需要，必需；承担；遗传给；蕴含 n. 引起；需要；继承"}, {"word": "envisage", "phonetic": "/ɪnˈvɪzɪdʒ/", "definition": "vt. 正视，面对；想像; 展望"}, {"word": "epic", "phonetic": "/ˈepɪk/", "definition": "n. 史诗；叙事诗；史诗般的作品 adj. 史诗的，叙事诗的"}, {"word": "epidemic", "phonetic": "/ˌepɪˈdemɪk/", "definition": "n. 流行病；传染病；风尚等的流行 adj. 流行的；传染性的"}, {"word": "epoch", "phonetic": "/ˈi:pɒk/", "definition": "n. 新纪元；新时代；[地质] 世；时间上的一点"}, {"word": "equator", "phonetic": "/ɪˈkweɪ.tər/", "definition": "n. 赤道"}, {"word": "equivalent", "phonetic": "/ɪˈkwɪv.əl.ənt/", "definition": "n. 等价物，相等物 adj. 等价的，相等的；同意义的"}, {"word": "eradicate", "phonetic": "/ɪˈræd.ɪ.keɪt/", "definition": "vt. 根除，根绝；消灭"}, {"word": "erect", "phonetic": "/ɪˈrekt/", "definition": "vt. 使竖立；建造；安装 adj. 竖立的；笔直的；因性刺激而勃起的 vi. 直立；勃起"}, {"word": "escalate", "phonetic": "/ˈeskəleɪt/", "definition": "vt. 使逐步升级 vi. 逐步增强；逐步升高"}, {"word": "escort", "phonetic": "/ˈeskɔ:t/", "definition": "n. 护送队；护送者 vt. 护送；陪同；为…护航"}, {"word": "eternal", "phonetic": "/ɪˈtɜ:nl/", "definition": "adj. 永恒的；不朽的"}, {"word": "evaporate", "phonetic": "/ɪˈvæpəreɪt/", "definition": "vt. 使……蒸发；使……脱水；使……消失 vi. 蒸发，挥发；消失，失踪"}, {"word": "exaggerate", "phonetic": "/ɪgˈzædʒəreɪt/", "definition": "vt. 使扩大；使增大 vi. 夸大；夸张"}, {"word": "excerpt", "phonetic": "/ˈeksɜ:pt/", "definition": "n. 摘录，引用 vt. 引用，摘录 vi. 摘录，引用"}, {"word": "excess", "phonetic": "/ɪkˈses/", "definition": "n. 超过，超额；过度，过量；无节制 adj. 额外的，过量的；附加的"}, {"word": "excessive", "phonetic": "/ɪkˈsesɪv/", "definition": "adj. 过多的，极度的；过分的"}, {"word": "exclaim", "phonetic": "/ɪkˈskleɪm/", "definition": "vt. 大声说出 vi. 呼喊，惊叫；大声叫嚷"}, {"word": "exempt", "phonetic": "/ɪgˈzempt/", "definition": "n. 免税者；被免除义务者 adj. 被免除的；被豁免的 vt. 免除；豁免"}, {"word": "expedition", "phonetic": "/ˌekspəˈdɪʃn/", "definition": "n. 远征；探险队；迅速"}, {"word": "expire", "phonetic": "/ɪkˈspaɪə/", "definition": "vi. 期满；终止；死亡；呼气 vt. 呼出（空气）"}, {"word": "expressly", "phonetic": "/ɪkˈspresli/", "definition": "adv. 清楚地，明显地；特别地，专门地"}, {"word": "exquisite", "phonetic": "/ɪkˈskwɪzɪt/", "definition": "n. 服饰过于讲究的男子 adj. 精致的；细腻的；优美的，高雅的；异常的；剧烈的"}, {"word": "extinguish", "phonetic": "/ɪkˈstɪŋgwɪʃ/", "definition": "vt. 熄灭；压制；偿清"}, {"word": "extract", "phonetic": "/ɪkˈstrækt/", "definition": "n. 摘录；汁；榨出物；选粹 vt. 提取；取出；摘录；榨取"}, {"word": "extravagant", "phonetic": "/ɪkˈstrævəgənt/", "definition": "adj. 奢侈的；浪费的；过度的；放纵的"}, {"word": "fabricate", "phonetic": "/ˈfæbrɪkeɪt/", "definition": "vt. 制造；伪造；装配"}, {"word": "fabulous", "phonetic": "/ˈfæbjʊləs/", "definition": "adj. 难以置信的；传说的，寓言中的；极好的"}, {"word": "faint", "phonetic": "/feɪnt/", "definition": "n. [中医] 昏厥，昏倒 adj. ●模糊的；头晕的；微弱的 虚弱的；[医] 衰弱的 vi. 昏倒；变得微弱；变得没气力"}, {"word": "fairy", "phonetic": "/ˈfeəri/", "definition": "n. 仙女，小精灵；漂亮姑娘 adj. 虚构的；仙女的"}, {"word": "famine", "phonetic": "/ˈfæmɪn/", "definition": "n. 饥荒；饥饿，奇缺"}, {"word": "fatigue", "phonetic": "/fəˈti:g/", "definition": "n. 疲劳，疲乏；杂役 adj. 疲劳的 vt. 使疲劳；使心智衰弱 vi. 疲劳"}, {"word": "feast", "phonetic": "/fi:st/", "definition": "n. 筵席，宴会；节日 vt. 享受；款待，宴请 vi. 享受；参加宴会"}, {"word": "feeble", "phonetic": "/ˈfi:bəl/", "definition": "adj. 微弱的，无力的；虚弱的；薄弱的"}, {"word": "fertile", "phonetic": "/ˈfɜ:taɪl/", "definition": "adj. 富饶的，肥沃的；能生育的"}, {"word": "feudal", "phonetic": "/ˈfju:dəl/", "definition": "adj. 封建制度的；领地的；世仇的"}, {"word": "fine", "phonetic": "/faɪn/", "definition": "n. 罚款 adj. 好的；优良的；细小的，精美的；健康的；晴朗的 vt. 罚款；澄清 adv. 很好地；精巧地 n. (Fine)人名；(意)菲内；(英)法恩"}, {"word": "flaw", "phonetic": "/flɔ:/", "definition": "n. 瑕疵，缺点；一阵狂风；短暂的风暴；裂缝，裂纹 v. 使生裂缝，使有裂纹；使无效；使有缺陷 vi. 生裂缝；变的有缺陷"}, {"word": "fleet", "phonetic": "/fli:t/", "definition": "n. 舰队；港湾；小河 adj. 快速的，敏捷的 vt. 消磨 vi. 飞逝；疾驰；掠过 n. (Fleet)人名；(英)弗利特"}, {"word": "fling", "phonetic": "/flɪŋ/", "definition": "n. 掷，抛；嘲弄；急冲 vt. 掷，抛；嘲笑；使陷入；轻蔑地投射；猛动 vi. 猛冲，急行"}, {"word": "flock", "phonetic": "/flɒk/", "definition": "n. 群；棉束（等于floc） vi. 聚集；成群而行 vt. 用棉束填满 n. (Flock)人名；(德、瑞典)弗洛克"}, {"word": "flush", "phonetic": "/flʌʃ/", "definition": "n. 激动，洋溢；面红；萌芽；旺盛；奔流 adj. 大量的；齐平的；丰足的，洋溢的；挥霍的 vt. 使齐平；发红，使发亮；用水冲洗；使激动 vi. 发红，脸红；奔涌；被冲洗"}, {"word": "fork", "phonetic": "/fɔ:k/", "definition": "n. 叉；餐叉；耙 vt. 叉起；使成叉状 vi. 分叉；分歧 n. (Fork)人名；(英、德)福克"}, {"word": "foul", "phonetic": "/faʊl/", "definition": "n. 犯规 adj. 犯规的；邪恶的；污秽的；难闻的 vt. 犯规；弄脏 vi. 犯规；腐烂"}, {"word": "fraction", "phonetic": "/ˈfrækʃən/", "definition": "n. 分数；部分；小部分；稍微"}, {"word": "fracture", "phonetic": "/ˈfræktʃə/", "definition": "n. 破裂，断裂；[外科] 骨折 vt. 使破裂 vi. 破裂；折断"}, {"word": "fragile", "phonetic": "/ˈfrædʒaɪl/", "definition": "adj. 脆的；易碎的"}, {"word": "franchise", "phonetic": "/ˈfræntʃaɪz/", "definition": "n. 特权；公民权；经销权；管辖权 vt. 给…以特许（或特权）；赋予公民权"}, {"word": "fraud", "phonetic": "/frɔ:d/", "definition": "n. 欺骗；骗子；诡计 n. (Fraud)人名；(法)弗罗"}, {"word": "freight", "phonetic": "/freɪt/", "definition": "n. 货运；运费；船货 vt. 运送；装货；使充满"}, {"word": "friction", "phonetic": "/ˈfrɪkʃn/", "definition": "n. 摩擦，[力] 摩擦力"}, {"word": "fright", "phonetic": "/fraɪt/", "definition": "n. 惊吓；惊骇 vt. 使惊恐"}, {"word": "fringe", "phonetic": "/frɪndʒ/", "definition": "n. 边缘；穗；刘海 adj. 边缘的；附加的 vt. 加穗于"}, {"word": "frustrate", "phonetic": "/frʌˈstreɪt/", "definition": "vt. 挫败；阻挠；使感到灰心 adj. 挫败的；无益的 vi. 失败；受挫"}, {"word": "fume", "phonetic": "/fju:m/", "definition": "n. 烟；愤怒，烦恼 vt. 熏；冒烟；愤怒地说 vi. 冒烟；发怒 n. (Fume)人名；(日)不免(姓)"}, {"word": "funeral", "phonetic": "/ˈfju:nərəl/", "definition": "n. 葬礼；麻烦事 adj. 丧葬的，出殡的"}, {"word": "furious", "phonetic": "/ˈfjʊəriəs/", "definition": "adj. 狂怒的；激烈的；热烈兴奋的；喧闹的"}, {"word": "furnish", "phonetic": "/ˈfɜ:nɪʃ/", "definition": "vt. 提供；供应；装备"}, {"word": "fuse", "phonetic": "/fju:z/", "definition": "n. 保险丝，熔线；导火线，雷管 vt. 使融合；使熔化，使熔融 vi. 融合；熔化，熔融 n. (Fuse)人名；(意)富塞；(法)菲斯"}, {"word": "fuss", "phonetic": "/fʌs/", "definition": "n. 大惊小怪；大惊小怪的人；小题大作；忙乱 vt. 使烦恼，使烦忧 vi. 小题大作；忙乱；焦燥；焦急；无事自扰 n. (Fuss)人名；(匈)富什；(法)菲斯"}, {"word": "futile", "phonetic": "/ˈfju:taɪl/", "definition": "adj. 无用的；无效的；没有出息的；琐细的；不重要的"}, {"word": "gadget", "phonetic": "/ˈgædʒɪt/", "definition": "n. 小玩意；小器具；小配件；诡计"}, {"word": "garage", "phonetic": "/ˈgæra:ʒ/", "definition": "n. 车库；汽车修理厂；飞机库 vt. 把……送入车库；把（汽车）开进车库 n. （阿拉伯）贾拉杰（人名）"}, {"word": "garment", "phonetic": "/ˈga:mənt/", "definition": "n. 衣服，服装；外表，外观 vt. 给…穿衣服 n. (Garment)人名；(英)加门特"}, {"word": "gasoline", "phonetic": "/ˈgæsəli:n/", "definition": "n. 汽油"}, {"word": "generalize", "phonetic": "/ˈdʒenrəlaɪz/", "definition": "vi. 形成概念 vt. 概括；推广；使...一般化"}, {"word": "geology", "phonetic": "/dʒiˈɒlədʒi/", "definition": "n. 地质学；地质情况"}, {"word": "germ", "phonetic": "/dʒɜ:m/", "definition": "n. [植] 胚芽，萌芽；细菌 vi. 萌芽"}, {"word": "gigantic", "phonetic": "/dʒaɪˈgæntɪk/", "definition": "adj. 巨大的，庞大的"}, {"word": "gloomy", "phonetic": "/ˈglu:mi/", "definition": "adj. 黑暗的；沮丧的；阴郁的"}, {"word": "glorious", "phonetic": "/ˈglɔ:riəs/", "definition": "adj. 光荣的；辉煌的；极好的"}, {"word": "gorgeous", "phonetic": "/ˈgɔ:dʒəs/", "definition": "adj. 极好的；华丽的，灿烂的"}, {"word": "gown", "phonetic": "/gaʊn/", "definition": "n. 长袍，长外衣；礼服；睡袍；法衣 vt. 使穿睡衣"}, {"word": "grape", "phonetic": "/greɪp/", "definition": "n. 葡萄；葡萄酒；葡萄树；葡萄色 n. (Grape)人名；(法)格拉普；(德、瑞典)格拉佩"}, {"word": "grave", "phonetic": "/greɪv/", "definition": "n. 墓穴，坟墓；死亡 adj. 重大的；严肃的；黯淡的 vt. 雕刻；铭记 n. (Grave)人名；(英)格雷夫；(德、瑞典)格拉弗；(法)格拉夫；(俄、葡)格拉韦"}, {"word": "grief", "phonetic": "/gri:f/", "definition": "n. 悲痛；忧伤；不幸"}, {"word": "grieve", "phonetic": "/gri:v/", "definition": "vi. 悲痛，哀悼 vt. 使悲伤，使苦恼 n. (Grieve)人名；(英)格里夫"}, {"word": "grill", "phonetic": "/grɪl/", "definition": "n. 烤架；铁格子；烤肉 vt. 烧，烤；拷问，严加盘问"}, {"word": "grim", "phonetic": "/grɪm/", "definition": "adj. 冷酷的；糟糕的；残忍的 n. (Grim)人名；(英、德、俄、捷、匈)格里姆"}, {"word": "grind", "phonetic": "/graɪnd/", "definition": "n. 磨；苦工作 vt. 磨碎；磨快 vi. 磨碎；折磨 n. (Grind)人名；(法、德)格林德"}, {"word": "grip", "phonetic": "/grɪp/", "definition": "n. 紧握；柄；支配；握拍方式；拍柄绷带 vt. 紧握；夹紧 vi. 抓住 n. (Grip)人名；(英、瑞典)格里普"}, {"word": "grope", "phonetic": "/grəʊp/", "definition": "n. 摸索；触摸 vt. 摸索 vi. 摸索；探索 n. (Grope)人名；(德)格罗佩"}, {"word": "gulf", "phonetic": "/gʌlf/", "definition": "n. 海湾；深渊；分歧；漩涡 vt. 吞没"}, {"word": "gymnasium", "phonetic": "/dʒɪmˈneɪziəm/", "definition": "n. 体育馆；健身房"}, {"word": "hail", "phonetic": "/heɪl/", "definition": "n. 冰雹；致敬；招呼；一阵 vt. 致敬；招呼；向...欢呼；猛发；使像下雹样落下（过去式hailed，过去分词hailed，现在分词hailing，第三人称单数hails） int. 万岁；欢迎 vi. 招呼；下雹 n. (Hail)人名；(阿拉伯、捷)海尔"}, {"word": "halt", "phonetic": "/hɔ:lt/", "definition": "n. 停止；立定；休息 vt. 使停止；使立定 vi. 停止；立定；踌躇，犹豫 n. (Halt)人名；(德、芬)哈尔特"}, {"word": "hammer", "phonetic": "/ˈhæmə/", "definition": "n. 铁锤；链球；[解剖] 锤骨；音锤 vi. 锤击；敲打；重复 vt. 锤击；锤打 n. (Hammer)人名；(法)阿梅；(德、英、芬、捷、瑞典、荷、丹、挪)哈默"}, {"word": "hamper", "phonetic": "/ˈhæmpə/", "definition": "n. 食盒，食篮；阻碍物 vt. 妨碍；束缚；使困累"}, {"word": "handicap", "phonetic": "/ˈhændɪkæp/", "definition": "n. 障碍；不利条件，不利的因素 vt. 妨碍，阻碍；使不利"}, {"word": "harassment", "phonetic": "/ˈhærəsmənt/", "definition": "n. 骚扰；烦恼"}, {"word": "harbor", "phonetic": "/ˈha:bə/", "definition": "n. 海港；避难所 n. (Harbor)人名；(英)哈伯 vt. 庇护；怀有 vi. 居住，生存；入港停泊；躲藏"}, {"word": "harsh", "phonetic": "/ha:ʃ/", "definition": "adj. 严厉的；严酷的；刺耳的；粗糙的；刺目的 n. (Harsh)人名；(英)哈什"}, {"word": "harvest", "phonetic": "/ˈha:vɪst/", "definition": "n. 收获；产量；结果 vt. 收割；得到 vi. 收割庄稼"}, {"word": "hasty", "phonetic": "/ˈheɪsti/", "definition": "adj. 轻率的；匆忙的；草率的；懈怠的 n. (Hasty)人名；(英)黑斯蒂"}, {"word": "hatch", "phonetic": "/hætʃ/", "definition": "n. 孵化；舱口 vt. 孵；策划 vi. 孵化 n. (Hatch)人名；(西)阿奇；(英)哈奇"}, {"word": "haul", "phonetic": "/hɔ:l/", "definition": "n. 拖，拉；用力拖拉；努力得到的结果；捕获物；一网捕获的鱼量；拖运距离 vt. 拖运；拖拉 vi. 拖，拉；改变主意；改变方向 n. (Haul)人名；(德)豪尔"}, {"word": "hay", "phonetic": "/heɪ/", "definition": "n. 干草 vt. 把晒干 vi. 割草晒干"}, {"word": "hazard", "phonetic": "/ˈhæzəd/", "definition": "n. 危险，冒险；冒险的事 vt. 赌运气；冒…的危险，使遭受危险 n. (Hazard)人名；(法)阿扎尔；(英)哈泽德"}, {"word": "headquarters", "phonetic": "/ˌhedˈkwɔ:təz/", "definition": "n. 总部；指挥部；司令部"}, {"word": "heal", "phonetic": "/hi:l/", "definition": "vt. 治愈，痊愈；和解 vi. 痊愈 n. (Heal)人名；(英)希尔"}, {"word": "heap", "phonetic": "/hi:p/", "definition": "n. 堆；许多；累积 vt. 堆积 vi. 堆起来 n. (Heap)人名；(芬)海亚普；(东南亚国家华语)协；(英)希普"}, {"word": "heave", "phonetic": "", "definition": "n. 举起；起伏；投掷；一阵呕吐 vt. 举起；使起伏；投掷；恶心；发出（叹息等） vi. 起伏；举起；喘息；呕吐"}, {"word": "hedge", "phonetic": "/hedʒ/", "definition": "n. 对冲，套期保值；树篱；障碍 v. 用树篱笆围住；避免作正面答复 n. (Hedge)人名；(英)赫奇"}, {"word": "hell", "phonetic": "/hel/", "definition": "n. 地狱；究竟（作加强语气词）；训斥；黑暗势力 vi. 过放荡生活；飞驰 int. 该死；见鬼（表示惊奇、烦恼、厌恶、恼怒、失望等） n. (Hell)人名；(柬)海；(西)埃利；(德、匈、捷、罗、芬、瑞典)黑尔"}, {"word": "helmet", "phonetic": "/ˈhelmɪt/", "definition": "n. 头盔；钢盔 n. (Helmet)人名；(德)黑尔梅特"}, {"word": "herald", "phonetic": "/ˈherəld/", "definition": "n. 预兆，征兆；先驱；传令官；报信者 vt. 通报；预示…的来临 n. (Herald)人名；(匈)海劳尔德；(英)赫勒尔德"}, {"word": "hierarchy", "phonetic": "/ˈhaɪəra:rki/", "definition": "n. 层级；等级制度"}, {"word": "hinder", "phonetic": "/ˈhɪndə(r)/", "definition": "vt. 阻碍；打扰 adj. 后面的 vi. 成为阻碍 n. (Hinder)人名；(芬)欣德"}, {"word": "hitherto", "phonetic": "/ˌhɪðəˈtu:/", "definition": "adv. 迄今；至今"}, {"word": "hoist", "phonetic": "/hɔɪst/", "definition": "n. 起重机；升起，吊起 vt. （用绳索，起重机等）使升起 vi. 升起；吊起 n. (Hoist)人名；(英)霍伊斯特"}, {"word": "hollow", "phonetic": "/ˈhɒləʊ/", "definition": "n. 洞；山谷；窟窿 adj. 空的；中空的，空腹的；凹的；虚伪的 vt. 使成为空洞 adv. 彻底地；无用地 vi. 形成空洞 n. (Hollow)人名；(英)霍洛"}, {"word": "homogeneous", "phonetic": "/ˌhɒməˈdʒi:niəs/", "definition": "adj. 同质的；均匀的；[数] 齐次的；同种的；同类的"}, {"word": "hostile", "phonetic": "/ˈhɒstaɪl/", "definition": "n. 敌对 adj. 敌对的，敌方的；怀敌意的"}, {"word": "hover", "phonetic": "/ˈhɒvə/", "definition": "n. 徘徊；盘旋；犹豫 vi. 盘旋，翱翔；徘徊 vt. 孵；徘徊在…近旁 n. (Hover)人名；(英、德)霍弗"}, {"word": "huddle", "phonetic": "/ˈhʌdəl/", "definition": "n. 拥挤；混乱；杂乱一团 n. (Huddle)人名；(英)赫德尔 vt. 把...挤在一起；使缩成一团；草率了事 vi. 蜷缩；挤作一团"}, {"word": "hum", "phonetic": "/hʌm/", "definition": "n. 嗡嗡声；哼声；杂声 vt. 用哼声表示 int. 哼；嗯 vi. 发低哼声 n. (Hum)人名；(匈、塞、英)胡姆；(东南亚华语)湛"}, {"word": "humanity", "phonetic": "/hju:ˈmænəti/", "definition": "n. 人类；人道；仁慈；人文学科"}, {"word": "humid", "phonetic": "/ˈhju:mɪd/", "definition": "adj. 潮湿的；湿润的；多湿气的"}, {"word": "humidity", "phonetic": "/hju:ˈmɪdɪti/", "definition": "n. [气象] 湿度；湿气"}, {"word": "humiliate", "phonetic": "/hju:ˈmɪlieɪt/", "definition": "vt. 羞辱；使…丢脸；耻辱"}, {"word": "hut", "phonetic": "/hʌt/", "definition": "n. 小屋；临时营房 vt. 使住在小屋中；驻扎 vi. 住在小屋中；驻扎 n. (Hut)人名；(阿拉伯、罗、塞)胡特"}, {"word": "hybrid", "phonetic": "/ˈhaɪbrɪd/", "definition": "n. 杂种，混血儿；混合物 adj. 混合的；杂种的"}, {"word": "hygiene", "phonetic": "/ˈhaɪdʒi:n/", "definition": "n. 卫生；卫生学；保健法"}, {"word": "hypocrisy", "phonetic": "/hɪˈpɒkrəsi/", "definition": "n. 虚伪；伪善"}, {"word": "hypothesis", "phonetic": "/haɪˈpɒθəsɪs/", "definition": "n. 假设"}, {"word": "hysterical", "phonetic": "/hɪˈstɛrɪk(ə)l/", "definition": "adj. 歇斯底里的；异常兴奋的"}, {"word": "idle", "phonetic": "/ˈaɪdəl/", "definition": "adj. 闲置的；懒惰的；停顿的 vt. 虚度；使空转 vi. 无所事事；虚度；空转"}, {"word": "illiterate", "phonetic": "/ɪˈlɪtərɪt/", "definition": "n. 文盲 adj. 文盲的；不识字的；没受教育的"}, {"word": "illuminate", "phonetic": "/ɪˈlu:mɪneɪt/", "definition": "vt. 阐明，说明；照亮；使灿烂；用灯装饰 vi. 照亮"}, {"word": "imaginary", "phonetic": "/ɪˈmædʒɪnəri/", "definition": "adj. 虚构的，假想的；想像的；虚数的"}, {"word": "immense", "phonetic": "/ɪˈmens/", "definition": "adj. 巨大的，广大的；无边无际的；非常好的"}, {"word": "imminent", "phonetic": "/ˈɪmɪnənt/", "definition": "adj. 即将来临的；迫近的"}, {"word": "impart", "phonetic": "/ɪmˈpa:t/", "definition": "vt. 给予（尤指抽象事物），传授；告知，透露"}, {"word": "imperative", "phonetic": "/ɪmˈperətɪv/", "definition": "n. 必要的事；命令；需要；规则；[语]祈使语气 adj. 必要的；不可避免的；紧急的；命令的，专横的；势在必行的；[语]祈使的"}, {"word": "impetus", "phonetic": "/ˈɪmpɪtəs/", "definition": "n. 动力；促进；冲力"}, {"word": "implicit", "phonetic": "/ɪmˈplɪsɪt/", "definition": "adj. 含蓄的；暗示的；盲从的"}, {"word": "impression", "phonetic": "/ɪmˈpreʃn/", "definition": "n. 印象；效果，影响；压痕，印记；感想；曝光（衡量广告被显示的次数。打开一个带有该广告的网页，则该广告的impression 次数增加一次）"}, {"word": "impulse", "phonetic": "/ˈɪmpʌls/", "definition": "n. 冲动；[电子] 脉冲；刺激；神经冲动；推动力 vt. 推动"}, {"word": "incentive", "phonetic": "/ɪnˈsentɪv/", "definition": "n. 动机；刺激 adj. 激励的；刺激的"}, {"word": "incidentally", "phonetic": "/ˌɪnsɪˈdentli/", "definition": "adv. 顺便；偶然地；附带地"}, {"word": "incline", "phonetic": "/ɪnˈklaɪn/", "definition": "v. 使倾向于；倾向于 n. 倾斜；斜面；斜坡 vt. 使倾斜 vi. 倾斜；易于"}, {"word": "incorporate", "phonetic": "/ɪnˈkɔ:pəreɪt/", "definition": "vt. 包含，吸收；体现；把……合并 adj. 合并的；一体化的；组成公司的 vi. 合并；混合；组成公司"}, {"word": "induce", "phonetic": "", "definition": "vt. 诱导；引起；引诱；感应"}, {"word": "inferior", "phonetic": "/ɪnˈfɪəriə/", "definition": "n. 下级；次品 adj. 差的；自卑的；下级的，下等的"}, {"word": "inflation", "phonetic": "/ɪnˈfleɪʃn/", "definition": "n. 膨胀；通货膨胀；夸张；自命不凡"}, {"word": "inflict", "phonetic": "/ɪnˈflɪkt/", "definition": "vt. 造成；使遭受（损伤、痛苦等）；给予（打击等）"}, {"word": "ingenious", "phonetic": "/ɪnˈdʒi:niəs/", "definition": "adj. 有独创性的；机灵的；心灵手巧的"}, {"word": "ingredient", "phonetic": "/ɪnˈgri:diənt/", "definition": "n. 原料；要素；组成部分 adj. 构成组成部分的"}, {"word": "inhabit", "phonetic": "/ɪnˈhæbɪt/", "definition": "vt. 栖息；居住于；占据 vi. （古）居住；栖息"}, {"word": "inhabitant", "phonetic": "/ɪnˈhæbɪtənt/", "definition": "n. 居民；居住者"}, {"word": "inherent", "phonetic": "/ɪnˈhɪərənt/", "definition": "adj. 固有的；内在的；与生俱来的，遗传的"}, {"word": "inherit", "phonetic": "/ɪnˈherɪt/", "definition": "vt. 继承；遗传而得 vi. 成为继承人"}, {"word": "initiate", "phonetic": "/ɪˈnɪʃieɪt/", "definition": "vt. 开始；创始；发起 n. 新加入者 adj. 新加入的"}, {"word": "initiative", "phonetic": "/ɪˈnɪʃətɪv/", "definition": "n. 主动权；首创精神 adj. 主动的；自发的；起始的"}, {"word": "inn", "phonetic": "/ɪn/", "definition": "n. 客栈；旅馆 vi. 住旅馆 n. (Inn)人名；(柬)因"}, {"word": "inquiry", "phonetic": "/ɪnˈkwaɪəri/", "definition": "n. 调查；探究；质询"}, {"word": "inspect", "phonetic": "/ɪnˈspekt/", "definition": "vt. 检查；视察；检阅 vi. 进行检查；进行视察"}, {"word": "installment", "phonetic": "/ɪnˈstɔ:lmənt/", "definition": "n. 安装；分期付款；部分；就职"}, {"word": "instantaneous", "phonetic": "/ˌɪnstənˈteɪniəs/", "definition": "adj. 瞬间的；即时的；猝发的"}, {"word": "instinct", "phonetic": "/ˈɪnstɪŋkt/", "definition": "n. 本能，直觉；天性 adj. 充满着的"}, {"word": "instruct", "phonetic": "/ɪnˈstrʌkt/", "definition": "vt. 指导；命令；教授；通知"}, {"word": "instrumental", "phonetic": "/ˌɪnstrəˈmentl/", "definition": "n. 器乐曲；工具字，工具格 adj. 乐器的；有帮助的；仪器的，器械的"}, {"word": "insulate", "phonetic": "/ˈɪnsjʊleɪt/", "definition": "vt. 隔离，使孤立；使绝缘，使隔热"}, {"word": "insult", "phonetic": "/ˈɪnsʌlt/", "definition": "n. 侮辱；凌辱；无礼 vt. 侮辱；辱骂；损害"}, {"word": "intact", "phonetic": "/ɪnˈtækt/", "definition": "adj. 完整的；原封不动的；未受损伤的"}, {"word": "integral", "phonetic": "/ˈɪntɪgrəl/", "definition": "n. 积分；部分；完整 adj. 积分的；完整的，整体的；构成整体所必须的"}, {"word": "intelligible", "phonetic": "/ɪnˈtelɪdʒəbl/", "definition": "adj. 可理解的；明了的；仅能用智力了解的"}, {"word": "intensity", "phonetic": "/ɪnˈtensəti/", "definition": "n. 强度；强烈；[物] 亮度；紧张"}, {"word": "intensive", "phonetic": "/ɪnˈtensɪv/", "definition": "n. 加强器 adj. 加强的；集中的；透彻的；加强语气的"}, {"word": "interference", "phonetic": "", "definition": "n. 干扰，冲突；干涉"}, {"word": "interim", "phonetic": "/ˈɪntərɪm/", "definition": "n. 过渡时期，中间时期；暂定 adj. 临时的，暂时的；中间的；间歇的"}, {"word": "intermediate", "phonetic": "/ˌɪntəˈmi:diət/", "definition": "n. [化学] 中间物；媒介 adj. 中间的，中级的 vi. 起媒介作用"}, {"word": "intermittent", "phonetic": "/ˌɪntəˈmɪtənt/", "definition": "adj. 间歇的；断断续续的；间歇性"}, {"word": "intersection", "phonetic": "/ˌɪntəˈsekʃən/", "definition": "n. 交叉；十字路口；交集；交叉点"}, {"word": "interval", "phonetic": "/ˈɪntəvəl/", "definition": "n. 间隔；间距；幕间休息"}, {"word": "intervene", "phonetic": "/ˌɪntəˈvi:n/", "definition": "vi. 干涉；调停；插入"}, {"word": "interview", "phonetic": "/ˈɪntəvju:/", "definition": "n. 接见，采访；面试，面谈 vt. 采访；接见；对…进行面谈；对某人进行面试"}, {"word": "intimate", "phonetic": "/ˈɪntɪmət/", "definition": "n. 知己；至交 adj. 亲密的；私人的；精通的；有性关系的 vt. 暗示；通知；宣布"}, {"word": "intimidate", "phonetic": "/ɪnˈtɪmɪdeɪt/", "definition": "vt. 恐吓，威胁；胁迫"}, {"word": "intricate", "phonetic": "/ˈɪntrɪkət/", "definition": "adj. 复杂的；错综的，缠结的"}, {"word": "intrigue", "phonetic": "/ɪnˈtri:g/", "definition": "n. 阴谋；诡计；复杂的事；私通 vt. 激起...的兴趣 vi. 私通；密谋"}, {"word": "intrinsic", "phonetic": "/ɪnˈtrɪnsɪk/", "definition": "adj. 本质的，固有的"}, {"word": "intrinsically", "phonetic": "/ɪnˈtrɪnsɪkli/", "definition": "adv. 本质地；内在地；固有地"}, {"word": "intrude", "phonetic": "/ɪnˈtru:d/", "definition": "vi. 闯入；侵入；侵扰 vt. 把…强加；把…硬挤"}, {"word": "intuition", "phonetic": "/ˌɪntjuˈɪʃn/", "definition": "n. 直觉；直觉力；直觉的知识"}, {"word": "inventory", "phonetic": "/ˈɪnvəntri/", "definition": "n. 存货，存货清单；详细目录；财产清册"}, {"word": "inverse", "phonetic": "/ˌɪnˈvɜ:s/", "definition": "n. 相反；倒转 adj. 相反的；倒转的 vt. 使倒转；使颠倒"}, {"word": "invert", "phonetic": "/ɪnˈvɜ:t/", "definition": "n. 颠倒的事物；倒置物；倒悬者 adj. 转化的 vt. 使…颠倒；使…反转；使…前后倒置"}, {"word": "invoke", "phonetic": "/ɪnˈvəʊk/", "definition": "vt. 调用；祈求；引起；恳求"}, {"word": "involve", "phonetic": "/ɪnˈvɒlv/", "definition": "vt. 包含；牵涉；使陷于；潜心于"}, {"word": "irony", "phonetic": "/ˈaɪrəni/", "definition": "n. 讽刺；反语；具有讽刺意味的事 adj. 铁的；似铁的"}, {"word": "irrespective", "phonetic": "/ˌɪrɪˈspektɪv/", "definition": "adj. 无关的；不考虑的；不顾的"}, {"word": "irritate", "phonetic": "/ˈɪrɪteɪt/", "definition": "vt. 刺激，使兴奋；激怒 vi. 引起恼怒，引起不愉快"}, {"word": "jail", "phonetic": "/dʒeɪl/", "definition": "n. 监狱；监牢；拘留所 vt. 监禁；下狱 n. (Jail)人名；(英)杰尔"}, {"word": "jargon", "phonetic": "/ˈdʒa:gən/", "definition": "n. 行话；术语；黄锆石"}, {"word": "jealous", "phonetic": "/ˈdʒeləs/", "definition": "adj. 妒忌的；猜疑的；唯恐失去的；戒备的"}, {"word": "judicial", "phonetic": "/dʒu:ˈdɪʃl̩/", "definition": "adj. 法庭的；公正的，明断的；审判上的"}, {"word": "junction", "phonetic": "/ˈdʒʌŋkʃən/", "definition": "n. 连接，接合；交叉点；接合点"}, {"word": "jurisdiction", "phonetic": "/ˌdʒʊərɪsˈdɪkʃn̩/", "definition": "n. 管辖权，权限；司法权，审判权；权力"}, {"word": "juvenile", "phonetic": "/ˈdʒu:vənaɪl/", "definition": "adj. 青少年的；幼稚的 n. 青少年；少年读物"}, {"word": "kettle", "phonetic": "/ˈketl/", "definition": "n. 壶；[化工] 釜；罐；鼓 n. (Kettle)人名；(英)凯特尔"}, {"word": "knit", "phonetic": "/nɪt/", "definition": "vi. 编织；结合；皱眉 vt. 编织；结合 n. 编织衣物；编织法"}, {"word": "knock", "phonetic": "/nɒk/", "definition": "vi. 敲；打；敲击 vt. 敲；打；敲击；批评 n. 敲；敲打；爆震声"}, {"word": "knot", "phonetic": "/nɒt/", "definition": "n. （绳等的）结；节瘤，疙瘩；海里/小时（航速单位） vi. 打结 vt. 打结 n. (Knot)人名；(英)诺特"}, {"word": "lane", "phonetic": "/leɪn/", "definition": "n. 小巷；[航][水运] 航线；车道；罚球区 n. (Lane)人名；(英、俄)莱恩；(老)兰；(德、法、意、葡、塞、瑞典)拉内"}, {"word": "lapse", "phonetic": "/læps/", "definition": "n. (一时的) 走神，判断错误"}, {"word": "latent", "phonetic": "/ˈleɪtnt/", "definition": "adj. 潜在的；潜伏的；隐藏的"}, {"word": "layoff", "phonetic": "/ˈleɪɒf/", "definition": "n. 活动停止期间；临时解雇；操作停止；失业期"}, {"word": "lean", "phonetic": "/li:n/", "definition": "vi. 倾斜；倚靠；倾向；依赖 adj. 瘦的；贫乏的，歉收的 vt. 使倾斜 n. 瘦肉；倾斜；倾斜度 n. (Lean)人名；(西)莱安；(柬)连；(英)利恩"}, {"word": "legacy", "phonetic": "/ˈleg.ə.si/", "definition": "n. 遗赠，遗产"}, {"word": "legitimate", "phonetic": "/lɪˈdʒɪtɪmət/", "definition": "adj. 合法的；正当的；合理的；正统的 vt. 使合法；认为正当（等于legitimize）"}, {"word": "lest", "phonetic": "/lest/", "definition": "conj. 唯恐，以免；担心"}, {"word": "levy", "phonetic": "/ˈlevi/", "definition": "n. 征收；征兵，征税 vt. 征收（税等）；征集（兵等） vi. 征税；征兵 n. (Levy)人名；(西、意、葡、芬、法、瑞典)莱维；(英、以)利维"}, {"word": "liable", "phonetic": "/ˈlaɪəbl/", "definition": "adj. 有责任的，有义务的；应受罚的；有…倾向的；易…的"}, {"word": "likewise", "phonetic": "/ˈlaɪkwaɪz/", "definition": "adv. 同样地；也"}, {"word": "limb", "phonetic": "/lɪm/", "definition": "n. 肢，臂；分支；枝干 vt. 切断…的手足；从…上截下树枝 n. (Limb)人名；(朝)林；(英)利姆"}, {"word": "limp", "phonetic": "/lɪmp/", "definition": "adj. 柔软的，无力的；软弱的 vi. 跛行，一拐一拐地走；缓慢费力地前进 n. 跛行 n. (Limp)人名；(英)林普"}, {"word": "liter", "phonetic": "/ˈli:.tər/", "definition": "n. 公升；n. (Liter)人名；(英)利特"}, {"word": "literacy", "phonetic": "/ˈlɪtərəsi/", "definition": "n. 读写能力；精通文学"}, {"word": "literally", "phonetic": "/ˈlɪtərəli/", "definition": "adv. 照字面地；逐字地；不夸张地；正确地；简直"}, {"word": "literature", "phonetic": "/ˈlɪtrətʃə/", "definition": "n. 文学；文献；文艺；著作"}, {"word": "liver", "phonetic": "/ˈlɪvə/", "definition": "n. 肝脏；生活者，居民"}, {"word": "lord", "phonetic": "/lɔ:d/", "definition": "n. 主；上帝 int. 主，天啊 vt. 使成贵族 vi. 作威作福，称王称霸 n. (Lord)人名；(瑞典)洛德；(法)洛尔"}, {"word": "lounge", "phonetic": "/laʊndʒ/", "definition": "n. 休息室；闲逛；躺椅；（英）酒吧间 vi. 闲逛；懒洋洋地躺卧；闲混 vt. 虚度光阴"}, {"word": "lucrative", "phonetic": "/ˈlu:krətɪv/", "definition": "adj. 有利可图的，赚钱的；合算的"}, {"word": "lump", "phonetic": "/lʌmp/", "definition": "n. 块，块状；肿块；瘤；很多；笨人 vt. 混在一起；使成块状；忍耐；笨重地移动 vi. 结块 adj. 成团的；总共的 adv. 很；非常"}, {"word": "magistrate", "phonetic": "/ˈmædʒɪstreɪt/", "definition": "n. 地方法官；文职官员；治安推事"}, {"word": "magnitude", "phonetic": "/ˈmægnɪtju:d/", "definition": "n. 重要；大小；量级；[地震] 震级；光度"}, {"word": "majesty", "phonetic": "/ˈmædʒəsti/", "definition": "n. 威严；最高权威，王权；雄伟；权威"}, {"word": "malignant", "phonetic": "/məˈlɪgnənt/", "definition": "adj. 恶性的；有害的；有恶意的 n. 保王党员；怀恶意的人"}, {"word": "mammal", "phonetic": "/ˈmæməl/", "definition": "n. [脊椎] 哺乳动物"}, {"word": "mandate", "phonetic": "/ˈmændeɪt/", "definition": "n. 授权；命令，指令；委托管理；受命进行的工作 vt. 授权；托管"}, {"word": "manipulate", "phonetic": "/məˈnɪpjʊleɪt/", "definition": "vt. 操纵；操作；巧妙地处理；篡改"}, {"word": "manoeuvre", "phonetic": "/məˈnu:və/", "definition": "vi. 调动；演习；用策略 vt. 诱使；操纵；耍花招 n. 策略（等于maneuvre）"}, {"word": "manual", "phonetic": "/ˈmænjʊəl/", "definition": "adj. 手工的；体力的 n. 手册，指南"}, {"word": "marine", "phonetic": "/məˈri:n/", "definition": "adj. 船舶的；海生的；海产的；航海的，海运的 n. 海运业；舰队；水兵；（海军）士兵或军官 n. (Marine)人名；(西)马里内；(英)马林"}, {"word": "martial", "phonetic": "/ˈma:ʃl̩/", "definition": "adj. 军事的；战争的；尚武的 n. (Martial)人名；(法)马夏尔"}, {"word": "masculine", "phonetic": "/ˈmæskjʊlɪn/", "definition": "adj. 男性的；阳性的；男子气概的 n. 男性；阳性，阳性词"}, {"word": "massacre", "phonetic": "/ˈmæsəkə/", "definition": "vt. 残杀；彻底击败 n. 大屠杀；惨败 n. (Massacre)人名；(法)马萨克尔"}, {"word": "meadow", "phonetic": "/ˈmedəʊ/", "definition": "n. 草地；牧场 n. (Meadow)人名；(英)梅多"}, {"word": "medieval", "phonetic": "/ˌmɛdɪˈi:vəl/", "definition": "adj. 中世纪的；原始的；仿中世纪的；老式的"}, {"word": "meditation", "phonetic": "/ˌmedɪˈteɪʃn/", "definition": "n. 冥想；沉思，深思"}, {"word": "menace", "phonetic": "/ˈmenɪs/", "definition": "n. 威胁；恐吓 vi. 恐吓；进行威胁 vt. 威胁；恐吓"}, {"word": "merit", "phonetic": "/ˈmerɪt/", "definition": "n. 优点，价值；功绩；功过 vt. 值得 vi. 应受报答"}, {"word": "militant", "phonetic": "/ˈmɪlɪtənt/", "definition": "adj. 好战的 n. 激进分子；富有战斗性的人；好斗者"}, {"word": "military", "phonetic": "/ˈmɪlətri/", "definition": "adj. 军事的；军人的；适于战争的 n. 军队；军人"}, {"word": "mill", "phonetic": "/mɪl/", "definition": "vi. 乱转；被碾磨 n. 工厂；磨坊；磨粉机；制造厂；压榨机 vt. 搅拌；碾磨；磨细；使乱转 n. (Mill)人名；(英、德、俄、瑞典)米尔"}, {"word": "mingle", "phonetic": "/ˈmɪŋgəl/", "definition": "vi. 混合；交往 vt. 使混合；使相混 n. (Mingle)人名；(加纳、英)明格尔"}, {"word": "minor", "phonetic": "/ˈmaɪnər/", "definition": "adj. 次要的；较小的；未成年的；小调的；二流的 n. 未成年人；小调；副修科目 vi. 副修 n. (Minor)人名；(英)迈纳；(德、法、波、俄)米诺尔"}, {"word": "mischief", "phonetic": "/ˈmɪstʃɪf/", "definition": "n. 恶作剧；伤害；顽皮；不和"}, {"word": "missionary", "phonetic": "/ˈmɪʃənri/", "definition": "adj. 传教的；传教士的 n. 传教士"}, {"word": "mobilize", "phonetic": "/ˈməʊbəlaɪz/", "definition": "vt. 动员，调动；集合，组织；使…流通；使…松动 vi. 组织；动员起来"}, {"word": "module", "phonetic": "/ˈmɒdju:l/", "definition": "n. 模块；组件；模数"}, {"word": "moisture", "phonetic": "/ˈmɔɪstʃə/", "definition": "n. 水分；湿度；潮湿；降雨量"}, {"word": "molecule", "phonetic": "/ˈmɒlɪkju:l/", "definition": "n. [化学] 分子；微小颗粒，微粒"}, {"word": "monarch", "phonetic": "/ˈmɒnək/", "definition": "n. 君主，帝王；最高统治者"}, {"word": "monotonous", "phonetic": "/məˈnɒtənəs/", "definition": "adj. 单调的，无抑扬顿挫的；无变化的"}, {"word": "mortal", "phonetic": "/ˈmɔ:təl/", "definition": "adj. 凡人的；致死的；终有一死的 n. 人类，凡人 n. (Mortal)人名；(法、葡)莫塔尔"}, {"word": "mud", "phonetic": "/mʌd/", "definition": "vt. 弄脏；用泥涂 vi. 钻入泥中 n. 泥；诽谤的话；无价值的东西"}, {"word": "multiple", "phonetic": "/ˈmʌltɪpl/", "definition": "adj. 多重的；多样的；许多的 n. [电] 并联"}, {"word": "multitude", "phonetic": "/ˈmʌltɪtju:d/", "definition": "n. 群众；多数"}, {"word": "municipal", "phonetic": "/mju:ˈnɪsɪpəl/", "definition": "adj. 市政的，市的；地方自治的"}, {"word": "mute", "phonetic": "/mju:t/", "definition": "adj. 哑的；沉默的；无声的 vt. 减弱……的声音；使……柔和 n. 哑巴；弱音器；闭锁音 n. (Mute)人名；(塞)穆特"}, {"word": "mutter", "phonetic": "/ˈmʌtər/", "definition": "vi. 咕哝；喃喃自语 vt. 咕哝；抱怨地说；低声含糊地说 n. 咕哝；喃喃低语 n. (Mutter)人名；(法)米泰；(德、匈、西)穆特；(英)马特"}, {"word": "mutual", "phonetic": "/ˈmju:tʃuəl/", "definition": "adj. 共同的；相互的，彼此的"}, {"word": "nasty", "phonetic": "/ˈna:sti/", "definition": "adj. 下流的；肮脏的；脾气不好的；险恶的 n. 令人不快的事物 性的吸引力"}, {"word": "negligible", "phonetic": "/ˈneglɪdʒəbəl/", "definition": "adj. 微不足道的，可以忽略的"}, {"word": "nominal", "phonetic": "/ˈnɒmɪnl/", "definition": "adj. 名义上的；有名无实的；[会计] 票面上的 n. [语] 名词性词"}, {"word": "nominate", "phonetic": "/ˈnɒmɪneɪt/", "definition": "vt. 推荐；提名；任命；指定"}, {"word": "nonsense", "phonetic": "/ˈnɒnsns/", "definition": "n. 胡说；废话 adj. 荒谬的 int. 胡说！"}, {"word": "normalization", "phonetic": "/ˌnɔ:məlaɪˈzeɪʃn/", "definition": "n. 正常化；标准化；正规化；常态化"}, {"word": "nostalgic", "phonetic": "/nɒˈstældʒɪk/", "definition": "adj. 怀旧的；乡愁的"}, {"word": "notify", "phonetic": "/ˈnəʊtɪfaɪ/", "definition": "vt. 通告，通知；公布"}, {"word": "notion", "phonetic": "/ˈnəʊʃən/", "definition": "n. 概念；见解；打算"}, {"word": "notorious", "phonetic": "/nəʊˈtɔ:riəs/", "definition": "adj. 声名狼藉的，臭名昭著的"}, {"word": "nuisance", "phonetic": "/ˈnju:sns/", "definition": "n. 讨厌的人；损害；麻烦事；讨厌的东西"}, {"word": "oath", "phonetic": "/əʊθ/", "definition": "n. 誓言，誓约；诅咒，咒骂"}, {"word": "objection", "phonetic": "/əbˈdʒekʃn̩/", "definition": "n. 异议，反对；缺陷，缺点；妨碍；拒绝的理由"}, {"word": "offset", "phonetic": "/ˈɒfset/", "definition": "n. 抵消，补偿；平版印刷；支管 vt. 抵消；弥补；用平版印刷术印刷 vi. 装支管"}, {"word": "oppress", "phonetic": "/əˈpres/", "definition": "vt. 压迫，压抑；使……烦恼；使……感到沉重"}, {"word": "ore", "phonetic": "/ɔ:/", "definition": "n. 矿；矿石 n. (Ore)人名；(意、瑞典)奥雷；(英)奥尔"}, {"word": "orient", "phonetic": "/ˈɔ:rɪənt/", "definition": "vt. 使适应；确定方向；使朝东 n. 东方；东方诸国 adj. 东方的 vi. 向东 n. (Orient)人名"}, {"word": "ornament", "phonetic": "/ˈɔ:.nə.mənt/", "definition": "n. 装饰；[建][服装] 装饰物；教堂用品 vt. 装饰，修饰"}, {"word": "orphan", "phonetic": "/ˈɔ:fn/", "definition": "adj. 孤儿的；无双亲的 n. 孤儿 vt. 使成孤儿"}, {"word": "orthodox", "phonetic": "/ˈɔ:θədɒks/", "definition": "adj. 正统的；传统的；惯常的；东正教的 n. 正统的人；正统的事物"}, {"word": "outfit", "phonetic": "/ˈaʊtfɪt/", "definition": "n. 机构；用具；全套装备 vi. 得到装备 vt. 配备；供应"}, {"word": "outlet", "phonetic": "/ˈaʊtlet/", "definition": "n. 出口，排放孔；[电] 电源插座；销路；发泄的方法；批发商店"}, {"word": "outlook", "phonetic": "/ˈaʊtlʊk/", "definition": "n. 展望；观点；景色 vt. 比……好看；用目光压倒 vi. 朝外看"}, {"word": "outset", "phonetic": "/ˈaʊtset/", "definition": "n. 开始；开端"}, {"word": "outspoken", "phonetic": "/ˌaʊtˈspəʊkən/", "definition": "adj. 坦率的，直言不讳的"}, {"word": "overhaul", "phonetic": "/ˈəʊvəhɔ:l/", "definition": "vt. 分解检查，大修；追上并超过 n. 彻底检修，详细检查"}, {"word": "overt", "phonetic": "/əʊˈvɜ:t/", "definition": "adj. 明显的；公然的；蓄意的"}, {"word": "overthrow", "phonetic": "/ˌəʊvəˈθrəʊ/", "definition": "n. 推翻；倾覆；瓦解 vt. 推翻；打倒；倾覆"}, {"word": "overtime", "phonetic": "/ˈəʊvətaɪm/", "definition": "n. 加班时间；延长时间；加时赛 adj. 超时的；加班的 vt. 使超过时间 adv. 加班地"}, {"word": "overwhelm", "phonetic": "/ˌəʊvəˈwɛlm/", "definition": "vt. 淹没；压倒；受打击；覆盖；压垮"}, {"word": "pact", "phonetic": "/pækt/", "definition": "n. 协定；公约；条约；契约"}, {"word": "paperback", "phonetic": "/ˈpeɪpəbæk/", "definition": "n. 平装本；廉价本 adj. 纸面装订的；纸面平装本书籍的 vt. 以平装本出版"}, {"word": "parachute", "phonetic": "/ˈpærəʃu:t/", "definition": "n. 降落伞 vi. 跳伞 空投"}, {"word": "paradox", "phonetic": "/ˈpærədɒks/", "definition": "n. 悖论，反论；似非而是的论点；自相矛盾的人或事"}, {"word": "paralyse", "phonetic": "/ˈpærəlaɪz/", "definition": "vt. 使……无力；使……麻痹；使……瘫痪"}, {"word": "parliament", "phonetic": "/ˈpa:ləmənt/", "definition": "n. 议会，国会"}, {"word": "patch", "phonetic": "/pætʃ/", "definition": "n. 眼罩；斑点；碎片；小块土地 vi. 打补丁 vt. 修补；解决；掩饰 n. (Patch)人名；(英)帕奇"}, {"word": "pathetic", "phonetic": "/pəˈθetɪk/", "definition": "adj. 可怜的，悲哀的；感伤的；乏味的"}, {"word": "patron", "phonetic": "/ˈpeɪtrən/", "definition": "n. 赞助人；保护人；主顾 n. (Patron)人名；(英)佩特伦；(法、意、罗)帕特龙"}, {"word": "paw", "phonetic": "/pɔ:/", "definition": "n. 爪子；手 vt. 抓，扒；亲昵地抚摸 vi. 用爪子抓；翻找"}, {"word": "peasant", "phonetic": "/ˈpezənt/", "definition": "n. 农民；乡下人"}, {"word": "pebble", "phonetic": "/ˈpebəl/", "definition": "n. 卵石；水晶透镜 vt. 用卵石铺"}, {"word": "peculiar", "phonetic": "/pɪˈkju:liə/", "definition": "n. 特权；特有财产 adj. 特殊的；独特的；奇怪的；罕见的"}, {"word": "pedal", "phonetic": "/ˈpedl/", "definition": "n. 踏板；脚蹬子 vi. 踩踏板；骑车 vt. 骑（自行车）；踩……的踏板 adj. 脚的；脚踏的"}, {"word": "peep", "phonetic": "/pi:p/", "definition": "n. 偷看；隐约看见，瞥见 vi. 窥视；慢慢露出，出现；吱吱叫 vt. 使出现 n. (Peep)人名；(爱沙)佩普"}, {"word": "pendulum", "phonetic": "/ˈpendʒələm/", "definition": "n. 钟摆；摇锤；摇摆不定的事态"}, {"word": "penetrate", "phonetic": "/ˈpenɪtreɪt/", "definition": "vi. 渗透；刺入；看透 vt. 渗透；穿透；洞察"}, {"word": "peninsula", "phonetic": "/pəˈnɪnsjʊlə/", "definition": "n. 半岛"}, {"word": "pension", "phonetic": "/ˈpenʃn/", "definition": "n. 退休金，抚恤金；津贴；膳宿费 vt. 发给养老金或抚恤金"}, {"word": "perfume", "phonetic": "/ˈpɜ:fju:m/", "definition": "n. 香水；香味 vt. 洒香水于…；使…带香味 vi. 散发香气"}, {"word": "perish", "phonetic": "/ˈperɪʃ/", "definition": "vi. 死亡；毁灭；腐烂；枯萎 vt. 使麻木；毁坏"}, {"word": "perpetual", "phonetic": "/pəˈpetʃuəl/", "definition": "adj. 永久的；不断的；四季开花的；无期限的"}, {"word": "persecute", "phonetic": "/ˈpɜ:sɪkju:t/", "definition": "vt. 迫害；困扰；同…捣乱"}, {"word": "persevere", "phonetic": "/ˌpɜ:sɪˈvɪə(r)/", "definition": "vi. 坚持；不屈不挠；固执己见（在辩论中）"}, {"word": "personnel", "phonetic": "/ˌpɜ:səˈnel/", "definition": "n. 人事部门；全体人员 adj. 人员的；有关人事的"}, {"word": "petition", "phonetic": "/pəˈtɪʃn/", "definition": "n. 请愿；请愿书；祈求；[法] 诉状 vt. 请愿；请求；恳求 vi. 请愿；请求"}, {"word": "physiology", "phonetic": "/ˌfɪziˈɒlədʒi/", "definition": "n. 生理学；生理机能"}, {"word": "picnic", "phonetic": "/ˈpɪknɪk/", "definition": "n. 野餐 vi. 去野餐"}, {"word": "pierce", "phonetic": "", "definition": "vt. 刺穿；洞察；响彻；深深地打动 vi. 进入；透入"}, {"word": "pillar", "phonetic": "/ˈpɪlə(r)/", "definition": "n. 柱子，柱形物；栋梁；墩 vt. 用柱支持 n. (Pillar)人名；(英)皮勒"}, {"word": "pinch", "phonetic": "/pɪntʃ/", "definition": "n. 匮乏；少量；夹痛 vt. 捏；勒索；使苦恼；掐掉某物，修剪 vi. 夹痛；节省 n. (Pinch)人名；(英)平奇"}, {"word": "pine", "phonetic": "/paɪn/", "definition": "n. 松树；凤梨，菠萝 adj. 松木的；似松的 vi. 渴望，痛苦；憔悴 vt. 为…悲哀；哀悼 n. (Pine)人名；(英)派因"}, {"word": "pitch", "phonetic": "/pɪtʃ/", "definition": "n. 沥青；音高；程度；树脂；倾斜；投掷；球场 vt. 投；掷；定位于；用沥青涂；扎营；向前倾跌 vi. 倾斜；投掷；搭帐篷；坠落"}, {"word": "plaintiff", "phonetic": "/ˈpleɪn.tɪf/", "definition": "n. 原告"}, {"word": "plaster", "phonetic": "/ˈpla:stə/", "definition": "n. 石膏；灰泥；膏药 vt. 减轻；粘贴；涂以灰泥；敷以膏药；使平服 n. (Plaster)人名；(英、德)普拉斯特"}, {"word": "plausible", "phonetic": "/ˈplɔ:zəbl/", "definition": "adj. 貌似可信的，花言巧语的；貌似真实的，貌似有理的"}, {"word": "plot", "phonetic": "/plɒt/", "definition": "n. 情节；图；阴谋 vt. 密谋；绘图；划分；标绘 vi. 密谋；策划；绘制 n. (Plot)人名；(捷)普洛特；(法)普洛"}, {"word": "plough", "phonetic": "/plaʊ/", "definition": "n. 犁；耕地（等于plow） vi. 用犁耕田；开路 vt. 犁；耕 n. (Plough)人名；(英)普劳"}, {"word": "plunge", "phonetic": "", "definition": "n. 投入；跳进 vt. 使陷入；使投入；使插入 vi. 突然地下降；投入；陷入；跳进"}, {"word": "pneumonia", "phonetic": "/nju:ˈməʊniə/", "definition": "n. 肺炎"}, {"word": "police", "phonetic": "/pəˈli:s/", "definition": "n. 警察，警方；治安 adj. 警察的；有关警察的 vt. 监督；管辖；维持治安；为…配备警察"}, {"word": "pond", "phonetic": "/pɒnd/", "definition": "n. 池塘 vt. 筑成池塘 vi. 筑成池塘 n. (Pond)人名；(英、法)庞德"}, {"word": "pope", "phonetic": "/pəʊp/", "definition": "n. 教皇，罗马教皇；权威，大师"}, {"word": "porch", "phonetic": "/pɔ:tʃ/", "definition": "n. 门廊；走廊"}, {"word": "pork", "phonetic": "/pɔ:k/", "definition": "n. 猪肉 vt. 与女子性交 n. (Pork)人名；(俄)波尔克"}, {"word": "portfolio", "phonetic": "/pɔ:tˈfəʊliəʊ/", "definition": "n. 公文包；文件夹；证券投资组合；部长职务"}, {"word": "pottery", "phonetic": "/ˈpɒtəri/", "definition": "n. 陶器；陶器厂；陶器制造术"}, {"word": "poultry", "phonetic": "/ˈpəʊltri/", "definition": "n. 家禽 家禽肉"}, {"word": "practitioner", "phonetic": "/prækˈtɪʃənə/", "definition": "n. 开业者，从业者，执业医生"}, {"word": "precaution", "phonetic": "/prɪˈkɔ:ʃən/", "definition": "n. 预防，警惕；预防措施 vt. 警惕；预先警告"}, {"word": "precede", "phonetic": "/prɪˈsi:d/", "definition": "vt. 领先，在…之前；优于，高于 vi. 领先，在前面"}, {"word": "preceding", "phonetic": "/prɪˈsi:dɪŋ/", "definition": "v. 在...之前（precede的ing形式） adj. 在前的；前述的"}, {"word": "precision", "phonetic": "/prɪˈsɪʒən/", "definition": "n. 精度，[数] 精密度；精确 adj. 精密的，精确的"}, {"word": "preclude", "phonetic": "/prɪˈklu:d/", "definition": "vt. 排除；妨碍；阻止"}, {"word": "predator", "phonetic": "/ˈpredətə/", "definition": "n. [动] 捕食者；[动] 食肉动物；掠夺者"}, {"word": "predecessor", "phonetic": "/ˈpri:dɪsesə/", "definition": "n. 前任，前辈"}, {"word": "predominant", "phonetic": "/prɪˈdɒmɪnənt/", "definition": "adj. 主要的；支配的；卓越的；有力的；有影响的"}, {"word": "preliminary", "phonetic": "/prɪˈlɪmɪnəri/", "definition": "n. 准备；预赛；初步措施 adj. 初步的；开始的；预备的"}, {"word": "premier", "phonetic": "/ˈpremiə/", "definition": "n. 总理，首相 adj. 第一的；最初的"}, {"word": "premise", "phonetic": "/ˈprɛmɪs/", "definition": "n. 前提；上述各项；房屋连地基 vt. 引出，预先提出；作为…的前提 vi. 作出前提"}, {"word": "premium", "phonetic": "/ˈpri:miəm/", "definition": "n. 额外费用；奖金；保险费；(商)溢价 adj. 高价的；优质的"}, {"word": "preposition", "phonetic": "/ˌprep.əˈzɪʃ.ən/", "definition": "n. 介词；前置词"}, {"word": "presumably", "phonetic": "/prɪˈzju:məbli/", "definition": "adv. 大概；推测起来；可假定"}, {"word": "presume", "phonetic": "/prɪˈzju:m/", "definition": "vt. 假定；推测；意味着；擅自"}, {"word": "pretext", "phonetic": "/ˈpri:tekst/", "definition": "n. 借口；托辞 vt. 以…为借口"}, {"word": "prevalent", "phonetic": "/ˈprevələnt/", "definition": "adj. 流行的；普遍的，广传的"}, {"word": "prey", "phonetic": "/preɪ/", "definition": "n. 捕食；牺牲者；被捕食的动物 vi. 捕食；掠夺；折磨 n. (Prey)人名；(英、法)普雷；(德)普赖"}, {"word": "priest", "phonetic": "/pri:st/", "definition": "n. 牧师；神父；教士 vt. 使成为神职人员；任命…为祭司 n. (Priest)人名；(英、德)普里斯特"}, {"word": "prime", "phonetic": "/praɪm/", "definition": "n. 初期；青年；精华；全盛时期 adj. 主要的；最好的；基本的 vt. 使准备好；填装 vi. 作准备 adv. 极好地 n. (Prime)人名；(英)普赖姆；(德)普里梅"}, {"word": "primitive", "phonetic": "/ˈprɪmətɪv/", "definition": "n. 原始人 adj. 原始的，远古的；简单的，粗糙的"}, {"word": "principal", "phonetic": "/ˈprɪnsəpl/", "definition": "adj. 主要的 n. 校长；资本；首长；当事人"}, {"word": "probe", "phonetic": "/prəʊb/", "definition": "n. 探针；调查 vi. 调查；探测 vt. 探查；用探针探测 n. (Probe)人名；(法)普罗布"}, {"word": "proceed", "phonetic": "/prəˈsi:d/", "definition": "vi. 开始；继续进行；发生；行进 n. 收入，获利"}, {"word": "proceeding", "phonetic": "/prəˈsi:dɪŋ/", "definition": "n. 程序；诉讼；事项；进行 v. 开始；继续做；行进（proceed的ing形式）"}, {"word": "prompt", "phonetic": "/prɒmpt/", "definition": "n. 提示；付款期限；DOS命令：改变DOS系统提示符的风格 adj. 敏捷的，迅速的；立刻的 vt. 提示；促进；激起；（给演员）提白 adv. 准时地"}, {"word": "prone", "phonetic": "/prəʊn/", "definition": "adj. 有…倾向的，易于…的；俯卧的 n. (Prone)人名；(意、法)普罗内"}, {"word": "propaganda", "phonetic": "/ˌprɒpəˈgændə/", "definition": "n. 宣传；传道总会"}, {"word": "propagate", "phonetic": "/ˈprɒpəgeɪt/", "definition": "vt. 传播；传送；繁殖；宣传 vi. 繁殖；增殖"}, {"word": "prophet", "phonetic": "/ˈprɒfɪt/", "definition": "n. 先知；预言者；提倡者"}, {"word": "proposal", "phonetic": "/prəˈpəʊzl/", "definition": "n. 提议，建议；求婚"}, {"word": "proposition", "phonetic": "/ˌprɒpəˈzɪʃn/", "definition": "n. [数] 命题；提议；主题；议题 vt. 向…提议；向…求欢"}, {"word": "prose", "phonetic": "/prəʊz/", "definition": "n. 散文；单调 adj. 散文的；平凡的；乏味的 vt. 把…写成散文 vi. 写散文；乏味地讲话"}, {"word": "prosecute", "phonetic": "/ˈprɒsɪkju:t/", "definition": "vt. 检举；贯彻；从事；依法进行 vi. 起诉；告发；作检察官"}, {"word": "prospective", "phonetic": "/prəˈspektɪv/", "definition": "n. 预期；展望 adj. 未来的；预期的"}, {"word": "prosperous", "phonetic": "/ˈprɒspərəs/", "definition": "adj. 繁荣的；兴旺的"}, {"word": "protest", "phonetic": "/ˈprəʊtest/", "definition": "n. 抗议 adj. 表示抗议的；抗议性的 vt. 抗议；断言 vi. 抗议；断言"}, {"word": "protocol", "phonetic": "/ˈprəʊtəkɒl/", "definition": "n. 协议；草案；礼仪 vt. 拟定 vi. 拟定"}, {"word": "prototype", "phonetic": "/ˈprəʊtətaɪp/", "definition": "n. 原型；标准，模范"}, {"word": "provision", "phonetic": "/prəˈvɪʒən/", "definition": "n. 规定；条款；准备；[经] 供应品 vt. 供给…食物及必需品"}, {"word": "provoke", "phonetic": "/prəˈvəʊk/", "definition": "vt. 驱使；激怒；煽动；惹起"}, {"word": "publicity", "phonetic": "/pʌbˈlɪsəti/", "definition": "n. 宣传，宣扬；公开；广告；注意"}, {"word": "pulse", "phonetic": "/pʌls/", "definition": "n. [电子] 脉冲；脉搏 vt. 使跳动 vi. 跳动，脉跳"}, {"word": "pump", "phonetic": "/pʌmp/", "definition": "n. 泵，抽水机；打气筒 vt. 打气；用抽水机抽… vi. 抽水 n. (Pump)人名；(捷)蓬普；(英)庞普"}, {"word": "punch", "phonetic": "/pʌntʃ/", "definition": "n. 冲压机；打洞器；钻孔机 vt. 开洞；以拳重击 vi. 用拳猛击 n. (Punch)人名；(马来)蓬芝；(英)庞奇"}, {"word": "puppet", "phonetic": "/ˈpʌpɪt/", "definition": "n. 木偶；傀儡；受他人操纵的人"}, {"word": "purse", "phonetic": "/pɜ:s/", "definition": "n. (女士)手提袋；(国家、家庭、团体等的) 财力 vt. （嘴巴）皱起，使缩拢；撅嘴"}, {"word": "pyramid", "phonetic": "/ˈpɪrəmɪd/", "definition": "n. 金字塔；角锥体 vt. 使…渐增；使…上涨；使…成金字塔状 vi. 渐增；上涨；成金字塔状"}, {"word": "quarantine", "phonetic": "/ˈkwɒrənti:n/", "definition": "n. 检疫；隔离；检疫期；封锁 vt. 检疫；隔离；使隔离 vi. 实行隔离"}, {"word": "quarrel", "phonetic": "/ˈkwɒrəl/", "definition": "n. 吵架；反目；怨言；争吵的原因；方头凿 vi. 吵架；争论；挑剔"}, {"word": "quiver", "phonetic": "/ˈkwɪvə(r)/", "definition": "n. 颤抖；箭袋；震动 vi. 颤抖；振动 vt. 使…颤动；抖动"}, {"word": "quota", "phonetic": "/ˈkwəʊtə/", "definition": "n. 配额；定额；限额"}, {"word": "radiate", "phonetic": "/ˈreɪdieɪt/", "definition": "adj. 辐射状的，有射线的 vi. 辐射；流露；发光；从中心向各方伸展 vt. 辐射；传播；流露；发射；广播"}, {"word": "raid", "phonetic": "/reɪd/", "definition": "n. 袭击；突袭；搜捕；抢劫 vt. 袭击，突袭 vi. 对…进行突然袭击 n. (Raid)人名；(阿拉伯)拉伊德"}, {"word": "rake", "phonetic": "/reɪk/", "definition": "n. 耙子；斜度；钱耙；放荡的人，浪子 vt. 倾斜；搜索；掠过；用耙子耙 vi. 搜索；用耙子耙；掠过，擦过 n. (Rake)人名；(英)雷克；(塞)拉凯"}, {"word": "readily", "phonetic": "/ˈredɪli/", "definition": "adv. 容易地；乐意地；无困难地"}, {"word": "reassure", "phonetic": "/ˌri:əˈʃɔ:/", "definition": "vt. 使…安心，使消除疑虑"}, {"word": "reception", "phonetic": "/rɪˈsepʃən/", "definition": "n. 接待；接收；招待会；感受；反应"}, {"word": "recipient", "phonetic": "/rɪˈsɪpiənt/", "definition": "n. 容器，接受者；容纳者 adj. 容易接受的，感受性强的"}, {"word": "reciprocal", "phonetic": "/rɪˈsɪprəkəl/", "definition": "n. [数] 倒数；互相起作用的事物 adj. 互惠的；相互的；倒数的，彼此相反的"}, {"word": "reckless", "phonetic": "/ˈrekləs/", "definition": "adj. 鲁莽的，不顾后果的；粗心大意的 n. (Reckless)人名；(英)雷克利斯"}, {"word": "recollect", "phonetic": "/ˌrekəˈlekt/", "definition": "v. 回忆，想起"}, {"word": "recur", "phonetic": "", "definition": "vi. 复发；重现；采用；再来；循环；递归"}, {"word": "redeem", "phonetic": "", "definition": "vt. 赎回；挽回；兑换；履行；补偿；恢复"}, {"word": "redundant", "phonetic": "/rɪˈdʌndənt/", "definition": "adj. 多余的，过剩的；被解雇的，失业的；冗长的，累赘的"}, {"word": "reel", "phonetic": "/ri:l/", "definition": "n. 蹒跚；眩晕；旋转 vt. 卷；使旋转 vi. 卷；眩晕；蹒跚地走；退缩 n. (Reel)人名；(土)雷埃尔"}, {"word": "refrain", "phonetic": "/rɪˈfreɪn/", "definition": "n. 叠句，副歌；重复 vi. 克制；避免；制止"}, {"word": "refresh", "phonetic": "/rɪˈfrɛʃ/", "definition": "vt. 更新；使……恢复；使……清新；消除……的疲劳 vi. 恢复精神；喝饮料，吃点心；补充给养"}, {"word": "refuge", "phonetic": "/ˈrefju:dʒ/", "definition": "n. 避难；避难所；庇护 vt. 给予…庇护；接纳…避难 vi. 避难；逃避"}, {"word": "refute", "phonetic": "/rɪˈfju:t/", "definition": "vt. 反驳，驳斥；驳倒"}, {"word": "regime", "phonetic": "/reɪˈʒi:m/", "definition": "n. 政权，政体；社会制度；管理体制"}, {"word": "reign", "phonetic": "/reɪn/", "definition": "n. 统治；支配 vi. 统治；支配；盛行；君临"}, {"word": "rein", "phonetic": "/reɪn/", "definition": "n. 缰绳；驾驭；统治；支配 vt. 控制；驾驭；勒住 vi. 勒住马 n. (Rein)人名；(西、阿拉伯)雷因；(法)兰；(英、荷、捷、德、芬、瑞典)赖因；(爱沙)雷恩"}, {"word": "rejoice", "phonetic": "/rɪˈdʒɔɪs/", "definition": "vi. 高兴；庆祝 vt. 使高兴"}, {"word": "relay", "phonetic": "/ˈri:leɪ/", "definition": "n. [电] 继电器；接替，接替人员；驿马 vt. 转播；使接替；分程传递 vi. 转播；接替"}, {"word": "relentless", "phonetic": "/rɪˈlentləs/", "definition": "adj. 无情的；残酷的；不间断的"}, {"word": "relish", "phonetic": "/ˈrɛlɪʃ/", "definition": "n. 滋味；风味；食欲；开胃小菜；含义；调味品 vt. 盼望;期待;享受；品味；喜爱；给…加佐料 vi. 有特定意味；味道可口"}, {"word": "removal", "phonetic": "/rɪˈmu:vəl/", "definition": "n. 免职；移动；排除；搬迁"}, {"word": "renaissance", "phonetic": "/rɪˈneɪsns/", "definition": "n. 文艺复兴（欧洲14至17世纪）"}, {"word": "repression", "phonetic": "/rɪˈpreʃn/", "definition": "n. 抑制，压抑；镇压"}, {"word": "reproach", "phonetic": "/rɪˈprəʊtʃ/", "definition": "n. 责备；耻辱 vt. 责备；申斥"}, {"word": "reptile", "phonetic": "/ˈreptaɪl/", "definition": "n. 爬行动物；卑鄙的人 adj. 爬虫类的；卑鄙的"}, {"word": "resemblance", "phonetic": "/rɪˈzembləns/", "definition": "n. 相似；相似之处；相似物；肖像"}, {"word": "resemble", "phonetic": "/rɪˈzembl/", "definition": "vt. 类似，像"}, {"word": "reservoir", "phonetic": "/ˈrezəvwa:/", "definition": "n. 水库；蓄水池"}, {"word": "resilient", "phonetic": "/rɪˈzɪliənt/", "definition": "adj. 弹回的，有弹力的 adj. 能复原的；有复原力的"}, {"word": "resistance", "phonetic": "/rɪˈzɪstəns/", "definition": "n. 阻力；电阻；抵抗；反抗；抵抗力"}, {"word": "restrain", "phonetic": "/rɪˈstreɪn/", "definition": "vt. 抑制，控制；约束；制止"}, {"word": "restraint", "phonetic": "/rɪˈstreɪnt/", "definition": "n. 抑制，克制；约束"}, {"word": "restrict", "phonetic": "/rɪˈstrɪkt/", "definition": "vt. 限制；约束；限定"}, {"word": "resultant", "phonetic": "/rɪˈzʌltənt/", "definition": "n. 合力；结果；[化学] 生成物 adj. 结果的；合成的"}, {"word": "resume", "phonetic": "/rɪˈzju:m/", "definition": "n. 摘要；[管理] 履历，简历 vi. 重新开始，继续 vt. 重新开始，继续；恢复，重新占用"}, {"word": "retention", "phonetic": "/rɪˈtenʃn/", "definition": "n. 保留；扣留，滞留；记忆力；闭尿"}, {"word": "retort", "phonetic": "/rɪˈtɔ:t/", "definition": "n. 反驳，顶嘴；曲颈瓶 vi. 反驳，回嘴 vt. 反驳，反击"}, {"word": "retreat", "phonetic": "/rɪˈtri:t/", "definition": "n. 撤退；休息寓所；退缩 vt. 退（棋）；使后退 vi. 撤退；退避；向后倾"}, {"word": "retrieve", "phonetic": "/rɪˈtri:v/", "definition": "n. [计] 检索；恢复，取回 vt. [计] 检索；恢复；重新得到 vi. 找回猎物"}, {"word": "retrospect", "phonetic": "/ˈretrəspekt/", "definition": "n. 回顾，追溯 vt. 回顾；追忆 vi. 回顾，追溯；回想"}, {"word": "revelation", "phonetic": "/ˌrevəˈleɪʃn/", "definition": "n. 启示；揭露；出乎意料的事；被揭露的真相"}, {"word": "revenge", "phonetic": "/rɪˈvendʒ/", "definition": "n. 报复；复仇 vt. 报复；替…报仇；洗雪 vi. 报仇；雪耻"}, {"word": "revive", "phonetic": "/rɪˈvaɪv/", "definition": "vt. 使复兴；使苏醒；回想起；重演，重播 vi. 复兴；复活；苏醒；恢复精神"}, {"word": "revolt", "phonetic": "/rɪˈvəʊlt/", "definition": "n. 反抗；叛乱；反感 vt. 使反感；使恶心 vi. 反抗；反叛；反感，厌恶"}, {"word": "rhetoric", "phonetic": "/ˈretərɪk/", "definition": "n. 修辞，修辞学；华丽的词藻 adj. 花言巧语的"}, {"word": "rhythm", "phonetic": "/ˈrɪðəm/", "definition": "n. 节奏；韵律"}, {"word": "ribbon", "phonetic": "/ˈrɪbən/", "definition": "n. 带；缎带；（勋章等的）绶带；带状物；勋表 vt. 把…撕成条带；用缎带装饰 vi. 形成带状"}, {"word": "ridge", "phonetic": "/rɪdʒ/", "definition": "n. 山脊；山脉；屋脊 vt. 使成脊状；作垄 vi. 成脊状 n. (Ridge)人名；(英)里奇"}, {"word": "ridiculous", "phonetic": "/rɪˈdɪkjələs/", "definition": "adj. 可笑的；荒谬的"}, {"word": "rifle", "phonetic": "/ˈraɪfəl/", "definition": "n. 步枪；来复枪 vt. 用步枪射击；抢夺；偷走；快速搜寻；匆忙翻找"}, {"word": "rigorous", "phonetic": "/ˈrɪgərəs/", "definition": "adj. 严格的，严厉的；严密的；严酷的"}, {"word": "rim", "phonetic": "/rɪm/", "definition": "n. 边，边缘；轮辋；圆圈 vt. 作…的边，装边于 vi. 作…的边，装边于 n. (Rim)人名；(俄)里姆"}, {"word": "riot", "phonetic": "/ˈraɪət/", "definition": "n. 暴乱；放纵；蔓延 vt. 浪费，挥霍 vi. 骚乱；放荡 n. (Riot)人名；(法)里奥；(西)里奥特"}, {"word": "rip", "phonetic": "/rɪp/", "definition": "n. 裂口，裂缝 vi. 裂开，被撕裂 vt. 撕；锯 n. (Rip)人名；(塞)里普"}, {"word": "ripe", "phonetic": "/raɪp/", "definition": "adj. 熟的，成熟的；时机成熟的 vt. 搜查；调查 vi. 进行搜查 n. (Ripe)人名；(意、瑞典)里佩"}, {"word": "ritual", "phonetic": "/ˈrɪtʃuəl/", "definition": "n. 仪式；惯例；礼制 adj. 仪式的；例行的；礼节性的"}, {"word": "rival", "phonetic": "/ˈraɪvəl/", "definition": "n. 对手；竞争者 adj. 竞争的 vt. 与…竞争；比得上某人 vi. 竞争 n. (Rival)人名；(英、法、西)里瓦尔"}, {"word": "robe", "phonetic": "/rəʊb/", "definition": "n. 长袍，礼服；制服 vi. 穿长袍 vt. 使穿长袍 n. (Robe)人名；(德、罗、塞)罗贝；(英、法)罗布"}, {"word": "rouse", "phonetic": "/raʊz/", "definition": "n. 觉醒；奋起 vt. 唤醒；激起，使振奋；惊起 vi. 醒来；奋起 n. (Rouse)人名；(英)劳斯"}, {"word": "royalty", "phonetic": "/ˈrɔɪəlti/", "definition": "n. 皇室；版税；王权；专利税"}, {"word": "rubber", "phonetic": "/ˈrʌbə/", "definition": "n. 橡胶；橡皮；合成橡胶；按摩师 adj. 橡胶制成的 vt. 涂橡胶于；用橡胶制造 vi. 扭转脖子看；好奇地引颈而望 n. (Rubber)人名；(西)鲁韦尔"}, {"word": "rug", "phonetic": "/rʌg/", "definition": "n. 小地毯；毛皮地毯；男子假发 n. (Rug)人名；(塞)鲁格"}, {"word": "rust", "phonetic": "/rʌst/", "definition": "n. 锈；生锈；[植保] 锈病 vt. 使生锈；腐蚀 vi. 生锈；成铁锈色；变迟钝 n. (Rust)人名；(英)拉斯特；(德、捷、瑞典)鲁斯特；(法)吕斯特"}, {"word": "ruthless", "phonetic": "/ˈru:θləs/", "definition": "adj. 无情的，残忍的"}, {"word": "saint", "phonetic": "/seɪnt/", "definition": "圣人，圣徒"}, {"word": "salient", "phonetic": "/ˈseɪliənt/", "definition": "n. 凸角；突出部分 adj. 显著的；突出的；跳跃的 n. (Salient)人名；(西)萨连特"}, {"word": "salvation", "phonetic": "/sælˈveɪʃən/", "definition": "n. 拯救；救助 n. (Salvation)人名；(瑞典)萨尔瓦蒂翁"}, {"word": "sanction", "phonetic": "/ˈsæŋkʃən/", "definition": "n. 制裁，处罚；认可；支持 vt. 制裁，处罚；批准；鼓励"}, {"word": "sarcastic", "phonetic": "/sa:ˈkæstɪk/", "definition": "adj. 挖苦的；尖刻的，辛辣的"}, {"word": "sausage", "phonetic": "/ˈsɒsɪdʒ/", "definition": "n. 香肠；腊肠；装香肠的碎肉"}, {"word": "saw", "phonetic": "/sɔ:/", "definition": "n. 锯子；谚语 v. see的过去式 vi. 锯；用锯；将某物锯成小块 vt. 看见；明白，了解；锯；锯成；锯开"}, {"word": "scarce", "phonetic": "/skeəs/", "definition": "adj. 缺乏的，不足的；稀有的 adv. 仅仅；几乎不；几乎没有"}, {"word": "scatter", "phonetic": "/ˈskætə/", "definition": "n. 分散；散播，撒播 vt. 使散开，使分散；使散播，使撒播 vi. 分散，散开；散射"}, {"word": "scenario", "phonetic": "/sɪˈna:riəʊ/", "definition": "n. 方案；情节；剧本；设想"}, {"word": "scramble", "phonetic": "/ˈskræmbl/", "definition": "n. 争夺；混乱，混乱的一团；爬行，攀登 vi. 爬行，攀登；不规则地生长；仓促行动 vt. 攀登；使混杂，仓促凑成；扰乱"}, {"word": "scratch", "phonetic": "/skrætʃ/", "definition": "n. 擦伤；抓痕；刮擦声；乱写 adj. 打草稿用的；凑合的；碰巧的 vt. 抓；刮；挖出；乱涂 vi. 抓；搔；发刮擦声；勉强糊口；退出比赛"}, {"word": "screw", "phonetic": "/skru:/", "definition": "n. 螺旋；螺丝钉；吝啬鬼 vt. 旋，拧；压榨；强迫 vi. 转动，拧"}, {"word": "scrutiny", "phonetic": "/ˈskru:tɪni/", "definition": "n. 详细审查；监视；细看；选票复查"}, {"word": "secondary", "phonetic": "/ˈsekəndəri/", "definition": "n. 副手；代理人 adj. 第二的；中等的；次要的；中级的"}, {"word": "sector", "phonetic": "/ˈsektə/", "definition": "n. 部门；扇形，扇区；象限仪；函数尺 vt. 把…分成扇形"}, {"word": "security", "phonetic": "/sɪˈkjʊərəti/", "definition": "n. 安全；保证；证券；抵押品 adj. 安全的；保安的；保密的"}, {"word": "segregate", "phonetic": "/ˈsegrɪgeɪt/", "definition": "vt. 使隔离；使分离；在…实行种族隔离"}, {"word": "sensible", "phonetic": "/ˈsensəbl/", "definition": "n. 可感觉到的东西; 敏感的人; adj. 明智的; 通情达理的; 合乎情理的; 意识到的，能感觉到的;"}, {"word": "sentiment", "phonetic": "/ˈsentɪmənt/", "definition": "n. 感情；情绪；情操；观点；多愁善感"}, {"word": "setback", "phonetic": "/ˈsetbæk/", "definition": "n. 挫折；退步；逆流"}, {"word": "shabby", "phonetic": "/ˈʃæbi/", "definition": "adj. 破旧的；卑鄙的；吝啬的；低劣的"}, {"word": "shatter", "phonetic": "/ˈʃætə/", "definition": "n. 碎片；乱七八糟的状态 vt. 粉碎；打碎；破坏；破掉；使散开 vi. 粉碎；损坏；落叶"}, {"word": "shave", "phonetic": "/ʃeɪv/", "definition": "vi. 剃须，剃毛 vt. 剃，削去；修剪；切成薄片；掠 n. 刮脸，剃胡子；修面；<口>侥幸逃过，幸免；剃刀，刮刀"}, {"word": "shear", "phonetic": "/ʃɪə/", "definition": "n. [力] 切变；修剪；大剪刀 vi. 剪；剪切；修剪 vt. 剪；修剪；剥夺 n. (Shear)人名；(英)希尔"}, {"word": "shed", "phonetic": "/ʃed/", "definition": "n. 小屋，棚；分水岭 vt. 流出；摆脱；散发；倾吐 vi. 流出；脱落；散布"}, {"word": "sheer", "phonetic": "/ʃɪə(r)/", "definition": "n. 偏航；透明薄织物 adj. 绝对的；透明的；峻峭的；纯粹的 vt. 使偏航；使急转向 adv. 完全；陡峭地 vi. 偏航"}, {"word": "shout", "phonetic": "/ʃaʊt/", "definition": "n. 呼喊；呼叫 vi. 呼喊；喊叫；大声说 vt. 呼喊；大声说"}, {"word": "shove", "phonetic": "/ʃʌv/", "definition": "n. 推；挤 vt. 挤；强使；撞；猛推 n. (Shove)人名；(英)肖夫"}, {"word": "shrewd", "phonetic": "/ʃru:d/", "definition": "n. 精明（的人）；机灵（的人） adj. 精明的；狡猾的；机灵的"}, {"word": "shrug", "phonetic": "/ʃrʌg/", "definition": "n. 耸肩 vi. 耸肩 vt. 耸肩，耸肩表示"}, {"word": "shutter", "phonetic": "/ˈʃʌtə/", "definition": "n. 快门；百叶窗；关闭物；遮板 vt. 为…装百叶窗；以百叶窗遮闭"}, {"word": "shuttle", "phonetic": "/ˈʃʌtəl/", "definition": "n. 航天飞机；穿梭；梭子；穿梭班机、公共汽车等 vt. 使穿梭般来回移动；短程穿梭般运送 vi. 穿梭往返"}, {"word": "sibling", "phonetic": "/ˈsɪblɪŋ/", "definition": "n. 兄弟姊妹；民族成员"}, {"word": "sideways", "phonetic": "/ˈsaɪdweɪz/", "definition": "adj. 向侧面的；一旁的 adv. 向侧面地；向一旁"}, {"word": "simplicity", "phonetic": "/sɪmˈplɪsəti/", "definition": "n. 朴素；简易；天真；愚蠢"}, {"word": "sin", "phonetic": "/sɪn/", "definition": "n. 罪恶；罪孽；过失 vt. 犯罪 vi. 犯罪；犯过失 n. (Sin)人名；(罗)西恩；(匈)欣；(柬、阿拉伯)辛；(缅)信"}, {"word": "siren", "phonetic": "/ˈsaɪrən/", "definition": "n. 汽笛；迷人的女人；歌声动人的女歌手 adj. 迷人的 vt. 引诱 vi. 响着警报器行驶"}, {"word": "skeleton", "phonetic": "/ˈskelɪtn/", "definition": "n. 骨架，骨骼；纲要；骨瘦如柴的人 adj. 骨骼的；骨瘦如柴的；概略的"}, {"word": "slack", "phonetic": "/slæk/", "definition": "n. 煤末；峡谷 adj. 松弛的；疏忽的；不流畅的 vt. 放松；使缓慢 adv. 马虎地；缓慢地 vi. 松懈；减弱 n. (Slack)人名；(英)斯莱克"}, {"word": "slam", "phonetic": "/slæm/", "definition": "n. 猛击；砰然声 vi. 砰地关上；猛力抨击 vt. 砰地关上；猛力抨击 n. (Slam)人名；(阿拉伯)萨拉姆；(罗)斯拉姆"}, {"word": "slaughter", "phonetic": "/ˈslɔ:tə/", "definition": "n. 屠宰，屠杀；杀戮；消灭 vt. 屠宰，屠杀；杀戮；使惨败 n. (Slaughter)人名；(英)斯劳特"}, {"word": "slender", "phonetic": "/ˈslɛndə/", "definition": "adj. 细长的；苗条的；微薄的"}, {"word": "slice", "phonetic": "/slaɪs/", "definition": "n. 薄片；部分；菜刀，火铲 vt. 切下；把…分成部分；将…切成薄片 vi. 切开；割破"}, {"word": "slim", "phonetic": "/slɪm/", "definition": "adj. 苗条的；修长的；微小的；差的 vt. 使…体重减轻；使…苗条 vi. 减轻体重；变细 n. (Slim)人名；(阿拉伯)萨利姆；(英、西)斯利姆"}, {"word": "slippery", "phonetic": "/ˈslɪpəri/", "definition": "adj. 滑的；狡猾的；不稳定的"}, {"word": "slogan", "phonetic": "/ˈsləʊgən/", "definition": "n. 标语；呐喊声"}, {"word": "slot", "phonetic": "/slɒt/", "definition": "n. 位置；狭槽；水沟；硬币投币口 vt. 跟踪；开槽于 n. (Slot)人名；(英、荷)斯洛特"}, {"word": "slum", "phonetic": "/slʌm/", "definition": "n. 贫民窟；陋巷；脏乱的地方 vi. （为猎奇或救济等）去贫民窟"}, {"word": "sly", "phonetic": "/slaɪ/", "definition": "adj. 狡猾的；淘气的；诡密的 n. (Sly)人名"}, {"word": "smog", "phonetic": "/smɒg/", "definition": "n. 烟雾"}, {"word": "snap", "phonetic": "/snæp/", "definition": "n. 猛咬；劈啪声；突然折断 adj. 突然的 vt. 突然折断，拉断；猛咬；啪地关上 vi. 咬；厉声说；咯嗒一声关上"}, {"word": "snatch", "phonetic": "/snætʃ/", "definition": "n. 抢夺；抓举；小量 vt. 夺得；抽空做；及时救助 vi. 抢走；很快接受"}, {"word": "sober", "phonetic": "/ˈsəʊbə(r)/", "definition": "adj. 冷静的，清醒的；未醉的 vt. 使严肃；使醒酒，使清醒 n. (Sober)人名；(英)索伯"}, {"word": "sole", "phonetic": "/səʊl/", "definition": "n. 鞋底；脚底；基础；鳎目鱼 adj. 唯一的；单独的；仅有的 vt. 触底；上鞋底 n. (Sole)人名；(意、西、芬、塞、罗、南非)索莱"}, {"word": "solemn", "phonetic": "/ˈsɒləm/", "definition": "adj. 庄严的，严肃的；隆重的，郑重的"}, {"word": "solidarity", "phonetic": "/ˌsɒlɪˈdærəti/", "definition": "n. 团结，团结一致"}, {"word": "solitary", "phonetic": "/ˈsɒlɪtəri/", "definition": "n. 独居者；隐士 adj. 孤独的；独居的"}, {"word": "sophisticated", "phonetic": "/səˈfɪstɪkeɪtɪd/", "definition": "adj. 复杂的；精致的；久经世故的；富有经验的 v. 使变得世故；使迷惑；篡改（sophisticate的过去分词形式）"}, {"word": "sophomore", "phonetic": "/ˈsɒfəmɔ:/", "definition": "n. 大学二年级生；（美）有二年经验的人 adj. 二年级的；二年级学生的"}, {"word": "sow", "phonetic": "/səʊ/", "definition": "n. 母猪 vt. 播种；散布；使密布 vi. 播种 n. (Sow)人名；(几、马里、乍、毛里塔、塞内)索乌"}, {"word": "spacious", "phonetic": "/ˈspeɪʃəs/", "definition": "adj. 宽敞的，广阔的；无边无际的"}, {"word": "spade", "phonetic": "/speɪd/", "definition": "n. 铁锹，铲子 vt. 铲；把……弄实抹平 vi. 铲 n. (Spade)人名；(英)斯佩德；(法)斯帕德"}, {"word": "span", "phonetic": "/spæn/", "definition": "n. 跨度，跨距；范围 vt. 跨越；持续；以手指测量 n. (Span)人名；(捷)斯潘"}, {"word": "spark", "phonetic": "/spa:k/", "definition": "n. 火花；朝气；闪光 vt. 发动；鼓舞；求婚 vi. 闪烁；发火花；求婚 n. (Spark)人名；(俄)斯帕克"}, {"word": "spear", "phonetic": "/spɪə/", "definition": "n. 矛，枪 vt. 用矛刺 n. (Spear)人名；(英)斯皮尔"}, {"word": "speciality", "phonetic": "/ˌspeʃiˈæləti/", "definition": "n. 专业，专长；特性"}, {"word": "specialty", "phonetic": "/ˈspeʃəlti/", "definition": "n. 专业，专长；特产；特性；招牌菜 adj. 特色的；专门的；独立的"}, {"word": "spectacle", "phonetic": "/ˈspektəkl/", "definition": "n. 景象；场面；奇观；壮观；公开展示；表相，假相 n.（复）眼镜"}, {"word": "spectacular", "phonetic": "/spekˈtæk.jʊ.lər/", "definition": "adj. 壮观的，惊人的；公开展示的"}, {"word": "spectrum", "phonetic": "/ˈspektrəm/", "definition": "n. 光谱；频谱；范围；余象"}, {"word": "spit", "phonetic": "/spɪt/", "definition": "n. 唾液 vi. 吐痰；吐口水；发出劈啪声 vt. 吐，吐出；发出；发射"}, {"word": "spite", "phonetic": "/spaɪt/", "definition": "n. 不顾；恶意；怨恨 vt. 刁难；使恼怒"}, {"word": "splash", "phonetic": "/splæʃ/", "definition": "n. 飞溅的水；污点；卖弄 vt. 溅，泼；用...使液体飞溅 vi. 溅湿；溅开"}, {"word": "split", "phonetic": "/splɪt/", "definition": "n. 劈开；裂缝 adj. 劈开的 vt. 分离；使分离；劈开；离开；分解 vi. 离开；被劈开；断绝关系"}, {"word": "sponge", "phonetic": "/spʌndʒ/", "definition": "n. 海绵；海绵状物 vt. 用海绵擦拭；抹掉；讨得 vi. 采集海绵；过寄生生活；海绵般地吸收"}, {"word": "spontaneous", "phonetic": "/spɒnˈteɪniəs/", "definition": "adj. 自发的；自然的；无意识的"}, {"word": "spray", "phonetic": "/spreɪ/", "definition": "n. 喷雾；喷雾器；水沫 vt. 喷射 vi. 喷 n. (Spray)人名；(英)斯普雷"}, {"word": "sprinkle", "phonetic": "/ˈsprɪŋkl/", "definition": "n. 撒，洒；少量 vt. 洒；撒；微雨；散置 vi. 洒，撒；下稀疏小雨；喷撒"}, {"word": "sprout", "phonetic": "/spraʊt/", "definition": "n. 芽；萌芽；苗芽 vt. 使发芽；使萌芽 vi. 发芽；长芽 n. (Sprout)人名；(英)斯普劳特"}, {"word": "squirrel", "phonetic": "/ˈskwɪrəl/", "definition": "n. 松鼠；松鼠毛皮 vt. 贮藏"}, {"word": "stainless", "phonetic": "/ˈsteɪnlɪs/", "definition": "adj. 不锈的；纯洁的，未被玷污的；无瑕疵的"}, {"word": "stairway", "phonetic": "/ˈsteəweɪ/", "definition": "n. 阶梯，楼梯"}, {"word": "stake", "phonetic": "/steɪk/", "definition": "n. 桩，棍子；赌注；火刑；奖金 vt. 资助，支持；系…于桩上；把…押下打赌 vi. 打赌 n. (Stake)人名；(瑞典)斯塔克"}, {"word": "stalk", "phonetic": "/stɔ:k/", "definition": "n. （植物的）茎，秆；（支持叶子、果实和花的）梗，柄；追踪；高视阔步 vt. 追踪，潜近；高视阔步 vi. 高视阔步地走；潜近，偷偷接近"}, {"word": "stall", "phonetic": "/stɔ:l/", "definition": "n. 货摊；畜栏；托辞 vt. 拖延；使停转；使陷于泥中 vi. 停止，停转；拖延 n. (Stall)人名；(瑞典)斯塔尔"}, {"word": "staple", "phonetic": "/ˈsteɪp(ə)l/", "definition": "n. 主要产品；订书钉；主题；主食 adj. 主要的，大宗生产的；常用的；纺织纤维的 vt. 把…分级；钉住"}, {"word": "statesman", "phonetic": "/ˈsteɪtsmən/", "definition": "n. 政治家；国务活动家"}, {"word": "steep", "phonetic": "/sti:p/", "definition": "n. 峭壁；浸渍 adj. 陡峭的；不合理的；夸大的；急剧升降的 vt. 泡；浸；使…充满 vi. 泡；沉浸"}, {"word": "steer", "phonetic": "/stɪə/", "definition": "vt. 控制，引导；驾驶 vi. 驾驶，掌舵；行驶 n. 阉牛 n. (Steer)人名；(英)斯蒂尔；(德、匈)施特尔"}, {"word": "stereo", "phonetic": "/ˈsteriəʊ/", "definition": "n. 立体声；立体声系统；铅版；立体照片 adj. 立体的；立体声的；立体感觉的"}, {"word": "stereotype", "phonetic": "/ˈsteriətaɪp/", "definition": "n. 陈腔滥调，老套；铅版 vt. 使用铅版；套用老套，使一成不变"}, {"word": "stern", "phonetic": "/stɜ:n/", "definition": "n. 船尾；末端 adj. 严厉的；坚定的 n. (Stern)人名；(英、以、法、瑞典、西)斯特恩；(德、波、匈)施特恩"}, {"word": "steward", "phonetic": "/ˈstju:əd/", "definition": "n. 乘务员；管家；膳务员；工会管事 vi. 当服务员；当管事 vt. 管理 n. (Steward)人名；(英)斯图尔德"}, {"word": "stiff", "phonetic": "/stɪf/", "definition": "adj. 呆板的；坚硬的；严厉的；拘谨的 adv. 僵硬地；彻底地 n. 死尸；令人讨厌者；流通票据；劳动者 vt. 诈骗；失信"}, {"word": "stimulate", "phonetic": "/ˈstɪmjʊleɪt/", "definition": "vi. 起刺激作用；起促进作用 vt. 刺激；鼓舞，激励"}, {"word": "stipulate", "phonetic": "/ˈstɪpjuleɪt/", "definition": "adj. 有托叶的 vi. 规定；保证 vt. 规定；保证"}, {"word": "stir", "phonetic": "/stɜ:/", "definition": "n. 搅拌；轰动 vi. 搅动；传播；走动 vt. 搅拌；激起；惹起"}, {"word": "stock", "phonetic": "/stɒk/", "definition": "n. 股份，股票；库存；血统；树干；家畜 adj. 存货的，常备的；平凡的 vt. 进货；备有；装把手于… vi. 囤积；办货；出新芽 n. (Stock)人名；(德、匈、捷)施托克；(英、法、葡、瑞典)斯托克"}, {"word": "stoop", "phonetic": "/stu:p/", "definition": "n. 弯腰，屈背；屈服 vt. 辱没，堕落；俯曲 vi. 弯腰；屈服；堕落 n. (Stoop)人名；(法、荷、葡)斯托普"}, {"word": "storey", "phonetic": "/ˈstɔ:ri/", "definition": "n. [建] 楼层；叠架的一层 n. (Storey)人名；(西、瑞典)斯托雷；(英)斯托里"}, {"word": "strain", "phonetic": "/streɪn/", "definition": "n. 张力；拉紧；负担；扭伤；血缘 vt. 拉紧；滥用；滤去；竭力 vi. 拉紧；尽力 n. (Strain)人名；(英)斯特兰 n. （植物、动物的）品种；种类"}, {"word": "strand", "phonetic": "/strænd/", "definition": "n. 线；串；股，缕 vt. 使搁浅；使陷于困境 vi. 搁浅"}, {"word": "straw", "phonetic": "/strɔ:/", "definition": "n. 稻草；吸管；一文不值的东西 adj. 稻草的；无价值的 n. (Straw)人名；(英)斯特劳"}, {"word": "streamline", "phonetic": "/ˈstri:mlaɪn/", "definition": "n. 流线；流线型 vt. 把…做成流线型；使现代化；组织；使合理化；使简单化 adj. 流线型的"}, {"word": "strenuous", "phonetic": "/ˈstrenjuəs/", "definition": "adj. 费力的；艰苦的；奋发的；紧张的；热烈的"}, {"word": "stretch", "phonetic": "/stretʃ/", "definition": "n. (Stretch)人名；(英)斯特雷奇 vt. 伸展,张开；（大量地）使用，消耗（金钱，时间）；使竭尽所能；使全力以赴； n. 伸展，延伸 vi. 伸展；足够买（或支付）"}, {"word": "strife", "phonetic": "/straɪf/", "definition": "n. 冲突；争吵；不和"}, {"word": "strike", "phonetic": "/straɪk/", "definition": "n. 罢工；打击；殴打 vi. 打，打击；罢工；敲，敲击；抓；打动；穿透 vt. 打，击；罢工；撞击，冲击；侵袭；打动；到达 n. (Strike)人名；(英)斯特赖克"}, {"word": "striking", "phonetic": "/ˈstraɪkɪŋ/", "definition": "v. 打（strike的ing形式） adj. 显著的，突出的，惊人的；打击的；罢工的"}, {"word": "stripe", "phonetic": "", "definition": "n. 条纹，斑纹；种类 vt. 加条纹于…"}, {"word": "stroke", "phonetic": "/strəʊk/", "definition": "n. （游泳或划船的）划；中风；（打、击等的）一下；冲程；（成功的）举动；尝试；轻抚 vt. （用笔等）画；轻抚；轻挪；敲击；划尾桨；划掉；（打字时）击打键盘 vi. 击球；作尾桨手，指挥划桨；（打字时）击打键盘"}, {"word": "stroll", "phonetic": "/strəʊl/", "definition": "n. 漫步；闲逛；巡回演出 vt. 散步；闲逛 vi. 散步；闲逛；巡回演出"}, {"word": "stumble", "phonetic": "/ˈstʌmbl/", "definition": "n. 绊倒；蹒跚而行 vi. 踌躇，蹒跚；失足；犯错 vt. 使…困惑；使…绊倒"}, {"word": "stun", "phonetic": "/stʌn/", "definition": "n. 昏迷；打昏；惊倒；令人惊叹的事物 vt. 使震惊；打昏；给以深刻的印象"}, {"word": "submarine", "phonetic": "/ˌsʌbməˈri:n/", "definition": "n. 潜水艇；海底生物 adj. 海底的；水下的 vt. 用潜水艇攻击 vi. 在下疾行；在下滑动"}, {"word": "submerge", "phonetic": "/səbˈmɜ:dʒ/", "definition": "vt. 淹没；把…浸入；沉浸 vi. 淹没；潜入水中；湮没"}, {"word": "subordinate", "phonetic": "/səˈbɔ:dɪnət/", "definition": "n. 下属，下级；部属，属下 adj. 从属的；次要的 vt. 使……居下位；使……服从"}, {"word": "substance", "phonetic": "/ˈsʌbstəns/", "definition": "n. 物质；实质；资产；主旨"}, {"word": "substantial", "phonetic": "/səbˈstænʃəl/", "definition": "n. 本质；重要材料 adj. 大量的；实质的；内容充实的"}, {"word": "subtle", "phonetic": "/ˈsʌtəl/", "definition": "adj. 微妙的；精细的；敏感的；狡猾的；稀薄的"}, {"word": "subtract", "phonetic": "/səbˈtrækt/", "definition": "vt. 减去；扣掉"}, {"word": "succession", "phonetic": "/səkˈseʃn/", "definition": "n. 连续；继位；继承权；[生态] 演替"}, {"word": "successive", "phonetic": "/səkˈsesɪv/", "definition": "adj. 连续的；继承的；依次的；接替的"}, {"word": "successor", "phonetic": "/səkˈsesə/", "definition": "n. 继承者；后续的事物"}, {"word": "suicide", "phonetic": "/ˈsu:ɪsaɪd/", "definition": "n. 自杀；自杀行为；自杀者 adj. 自杀的 vt. 自杀 vi. 自杀"}, {"word": "suite", "phonetic": "/swi:t/", "definition": "n. （一套）家具；套房；组曲；（一批）随员，随从"}, {"word": "sulfur", "phonetic": "/ˈsʌlfə/", "definition": "n. 硫磺；硫磺色 vt. 用硫磺处理"}, {"word": "summit", "phonetic": "/ˈsʌmɪt/", "definition": "n. 顶点；最高级会议；最高阶层 adj. 最高级的；政府首脑的"}, {"word": "summon", "phonetic": "/ˈsʌmən/", "definition": "vt. 召唤；召集；鼓起；振作"}, {"word": "superior", "phonetic": "/su:ˈpɪəriə/", "definition": "n. 上级，长官；优胜者，高手；长者 adj. 上级的；优秀的，出众的；高傲的"}, {"word": "superiority", "phonetic": "/su:ˌpɪəriˈɒrəti/", "definition": "n. 优越，优势；优越性"}, {"word": "supersonic", "phonetic": "/ˌsu:pəˈsɒnɪk/", "definition": "n. 超音速；超声波 adj. 超音速的；超声波的"}, {"word": "supervise", "phonetic": "", "definition": "vt. 监督，管理；指导 vi. 监督，管理；指导"}, {"word": "supreme", "phonetic": "/su:ˈpri:m/", "definition": "n. 至高；霸权 adj. 最高的；至高的；最重要的"}, {"word": "surge", "phonetic": "/sɜ:dʒ/", "definition": "n. 汹涌；大浪，波涛；汹涌澎湃；巨涌 v. 汹涌；起大浪，蜂拥而来"}, {"word": "surgery", "phonetic": "/ˈsɜ:dʒəri/", "definition": "n. 外科；外科手术；手术室；诊疗室"}, {"word": "surpass", "phonetic": "/səˈpa:s/", "definition": "vt. 超越；胜过，优于；非…所能办到或理解"}, {"word": "surrender", "phonetic": "/səˈrendə/", "definition": "n. 投降；放弃；交出；屈服 vt. 使投降；放弃；交出；听任 vi. 投降；屈服；自首"}, {"word": "susceptible", "phonetic": "/səˈsɛptɪbəl/", "definition": "n. 易得病的人 adj. 易受影响的；易感动的；容许…的"}, {"word": "suspension", "phonetic": "/səˈspenʃn/", "definition": "n. 暂停；停职；悬浮"}, {"word": "suspicion", "phonetic": "/səˈspɪʃən/", "definition": "n. 怀疑；嫌疑；疑心；一点儿 vt. 怀疑"}, {"word": "swallow", "phonetic": "/ˈswɒləʊ/", "definition": "n. 燕子；一次吞咽的量 vt. 忍受；吞没 vi. 吞下；咽下 n. (Swallow)人名；(英)斯沃洛"}, {"word": "swamp", "phonetic": "/swɒmp/", "definition": "vt. 使陷入困境；使陷于沼泽；使沉没 n. 沼泽；湿地 vi. 下沉；陷入沼泽；陷入困境；不知所措"}, {"word": "swarm", "phonetic": "/swɔ:m/", "definition": "n. 蜂群；一大群 vi. 挤满；成群浮游；云集 vt. 挤满；爬"}, {"word": "sway", "phonetic": "/sweɪ/", "definition": "n. 影响；摇摆；统治 vt. 影响；统治；使摇动 vi. 影响；摇摆 n. (Sway)人名；(以)斯韦"}, {"word": "swell", "phonetic": "/swɛl/", "definition": "n. 肿胀；隆起 vt. 使膨胀；使隆起 adj. 漂亮的；一流的 vi. 膨胀；肿胀；隆起 n. (Swell)人名；(英)斯韦尔"}, {"word": "symmetry", "phonetic": "/ˈsɪmətri/", "definition": "n. 对称（性）；整齐，匀称"}, {"word": "sympathetic", "phonetic": "/ˌsɪmpəˈθetɪk/", "definition": "n. 交感神经；容易感受的人 adj. 同情的；交感神经的；共鸣的；赞同的；和谐的；合意的"}, {"word": "symphony", "phonetic": "/ˈsɪmfəni/", "definition": "n. 交响乐；谐声，和声"}, {"word": "symposium", "phonetic": "/sɪmˈpəʊziəm/", "definition": "n. 讨论会，座谈会；专题论文集；酒宴，宴会"}, {"word": "symptom", "phonetic": "/ˈsɪmptəm/", "definition": "n. [临床] 症状；征兆"}, {"word": "syndrome", "phonetic": "/ˈsɪndrəʊm/", "definition": "n. [临床] 综合症状；并发症状；校验子；并发位 n. (Syndrome)人名；(英)辛德罗姆"}, {"word": "synthesis", "phonetic": "/ˈsɪnθəsɪs/", "definition": "n. 综合，[化学] 合成；综合体"}, {"word": "synthetic", "phonetic": "/sɪnˈθetɪk/", "definition": "n. 合成物 adj. 综合的；合成的，人造的"}, {"word": "tablet", "phonetic": "/ˈtæblɪt/", "definition": "n. 药片；碑；写字板；小块；平板电脑 vt. 用碑牌纪念；将(备忘录等)写在板上；将…制成小片或小块"}, {"word": "tale", "phonetic": "/teɪl/", "definition": "n. 故事；传说；叙述；流言蜚语 n. (Tale)人名；(塞)塔莱"}, {"word": "tangible", "phonetic": "/ˈtændʒəbl/", "definition": "n. 有形资产 adj. 有形的；切实的；可触摸的"}, {"word": "tangle", "phonetic": "/ˈtæŋgl/", "definition": "n. 纠纷；混乱状态 vt. 使纠缠；处于混乱状态 vi. 缠结；乱作一团"}, {"word": "tariff", "phonetic": "/ˈtærɪf/", "definition": "n. 关税表；收费表 vt. 定税率；征收关税"}, {"word": "temperament", "phonetic": "/ˈtemprəmənt/", "definition": "n. 气质，性情，性格；急躁"}, {"word": "tempo", "phonetic": "/ˈtempəʊ/", "definition": "n. 速度，发展速度；拍子 n. (Tempo)人名；(意)滕波"}, {"word": "temporal", "phonetic": "/ˈtempərəl/", "definition": "n. 世间万物；暂存的事物 adj. 暂时的；当时的；现世的 n. (Temporal)人名；(法)唐波拉尔"}, {"word": "tension", "phonetic": "/ˈtenʃn/", "definition": "n. 张力，拉力；紧张，不安；电压 vt. 使紧张；使拉紧"}, {"word": "tentative", "phonetic": "/ˈtentətɪv/", "definition": "n. 假设，试验 adj. 试验性的，暂定的；踌躇的"}, {"word": "terminate", "phonetic": "/ˈtɜ:mɪneɪt/", "definition": "vt. 使终止；使结束；解雇 adj. 结束的 vi. 结束，终止；结果"}, {"word": "terrific", "phonetic": "/təˈrɪfɪk/", "definition": "adj. 极好的；极其的，非常的；可怕的"}, {"word": "territory", "phonetic": "/ˈterətri/", "definition": "n. 领土，领域；范围；地域；版图"}, {"word": "terrorist", "phonetic": "/ˈtɛrərɪst/", "definition": "n. 恐怖主义者，恐怖分子"}, {"word": "testify", "phonetic": "/ˈtestɪfaɪ/", "definition": "vi. 作证；证明 vt. 证明，证实；作证"}, {"word": "testimony", "phonetic": "/ˈtestɪməni/", "definition": "n. 证词，证言；证据"}, {"word": "textile", "phonetic": "/ˈtekstaɪl/", "definition": "n. 纺织品，织物 adj. 纺织的"}, {"word": "thermal", "phonetic": "/ˈθɜ:məl/", "definition": "n. 上升的热气流 adj. 热的；热量的；保热的"}, {"word": "thermometer", "phonetic": "/θəˈmɒmɪtə/", "definition": "n. 温度计；体温计"}, {"word": "threshold", "phonetic": "/ˈθreʃhəʊld/", "definition": "n. 门槛；开始；极限；入口；临界值"}, {"word": "thrift", "phonetic": "/θrɪft/", "definition": "n. 节俭；节约；[植] 海石竹 n. (Thrift)人名；(英)思里夫特"}, {"word": "thrust", "phonetic": "/θrʌst/", "definition": "n. 推力；刺 vt. 插；插入；推挤 vi. 插入；用向某人刺去；猛然或用力推"}, {"word": "tile", "phonetic": "/taɪl/", "definition": "n. 瓷砖，瓦片 vt. 铺以瓦；铺以瓷砖 n. (Tile)人名；(俄、塞、萨摩)蒂勒"}, {"word": "tilt", "phonetic": "/tɪlt/", "definition": "n. 倾斜 vt. 使倾斜；使翘起 vi. 倾斜；翘起；以言词或文字抨击 n. (Tilt)人名；(英)蒂尔特"}, {"word": "timber", "phonetic": "", "definition": "n. 木材；木料 n. (Timber)人名；(瑞典)廷贝尔"}, {"word": "toast", "phonetic": "/təʊst/", "definition": "n. 干杯；烤面包；接受敬酒的人；（在某领域）广受赞誉的人 vt. 向…祝酒，为…干杯 vi. 烤火，取暖；使暖和；烘烤（面包片等）"}, {"word": "tobacco", "phonetic": "/təˈbækəʊ/", "definition": "n. 烟草，烟叶；烟草制品；抽烟"}, {"word": "toil", "phonetic": "/tɔɪl/", "definition": "n. 辛苦；苦工；网；圈套 vt. 费力地做；使…过度劳累 vi. 辛苦工作；艰难地行进"}, {"word": "toll", "phonetic": "/təʊl/", "definition": "vt. 征收；敲钟 n. 通行费；代价；钟声；伤亡人数 vi. 鸣钟；征税"}, {"word": "tomb", "phonetic": "/tu:m/", "definition": "n. 坟墓；死亡 vt. 埋葬 n. (Tomb)人名；(英)图姆"}, {"word": "tongue", "phonetic": "/tʌŋ/", "definition": "n. 舌头；语言 vt. 舔；斥责；用舌吹 vi. 说话；吹管乐器 n. (Tongue)人名；(英)唐"}, {"word": "torment", "phonetic": "/ˈtɔ:ment/", "definition": "n. 痛苦，苦恼；痛苦的根源 vt. 折磨，使痛苦；纠缠，作弄"}, {"word": "tournament", "phonetic": "/ˈtʊənəmənt/", "definition": "n. 锦标赛，联赛；比赛"}, {"word": "tractor", "phonetic": "/ˈtræk.tər/", "definition": "n. 拖拉机；牵引机"}, {"word": "tragedy", "phonetic": "/ˈtrædʒədi/", "definition": "n. 悲剧；灾难；惨案"}, {"word": "tragic", "phonetic": "/ˈtrædʒɪk/", "definition": "adj. 悲剧的；悲痛的，不幸的"}, {"word": "trait", "phonetic": "/treɪt/", "definition": "n. 特性，特点；品质；少许 n. (Trait)人名；(法)特雷"}, {"word": "tram", "phonetic": "/træm/", "definition": "n. 电车轨道；煤车 vt. 用煤车运载 vi. 乘电车"}, {"word": "transaction", "phonetic": "/trænˈzækʃn/", "definition": "n. 交易；事务；办理；会报，学报"}, {"word": "transcend", "phonetic": "/trænˈsend/", "definition": "vt. 胜过，超越"}, {"word": "transient", "phonetic": "/ˈtrænziənt/", "definition": "n. 瞬变现象；过往旅客；候鸟 adj. 短暂的；路过的"}, {"word": "transistor", "phonetic": "/trænˈzɪstə/", "definition": "n. 晶体管（收音机）"}, {"word": "transit", "phonetic": "/ˈtrænzɪt/", "definition": "n. 运输；经过 vt. 运送 vi. 经过"}, {"word": "transition", "phonetic": "/trænˈzɪʃn/", "definition": "n. 过渡；转变；[分子生物] 转换；变调"}, {"word": "tremendous", "phonetic": "/trɪˈmɛndəs/", "definition": "adj. 极大的，巨大的；惊人的；极好的"}, {"word": "trial", "phonetic": "/ˈtraɪəl/", "definition": "n. 试验；审讯；努力；磨炼 adj. 试验的；审讯的 n. (Trial)人名；(法)特里亚尔"}, {"word": "tribe", "phonetic": "/traɪb/", "definition": "n. 部落；族；宗族；一伙 n. (Tribe)人名；(英)特赖布"}, {"word": "tribute", "phonetic": "/ˈtrɪbju:t/", "definition": "n. 礼物；贡物；颂词；（尤指对死者的）致敬，悼念，吊唁礼物"}, {"word": "trifle", "phonetic": "/ˈtraɪfəl/", "definition": "n. 琐事；少量 vt. 浪费；虚度 vi. 开玩笑；闲混；嘲弄"}, {"word": "trigger", "phonetic": "/ˈtrɪgə/", "definition": "n. 扳机；[电子] 触发器；制滑机 vt. 引发，引起；触发 vi. 松开扳柄 n. (Trigger)人名；(英)特里杰"}, {"word": "trim", "phonetic": "/trɪm/", "definition": "n. 修剪；整齐 vt. 修剪；整理；装点 adj. 整齐的 vi. 削减 n. (Trim)人名；(意)特里姆"}, {"word": "triumph", "phonetic": "/ˈtraɪəmf/", "definition": "n. 胜利，凯旋；欢欣 vi. 获得胜利，成功"}, {"word": "trivial", "phonetic": "/ˈtrɪviəl/", "definition": "adj. 不重要的，琐碎的；琐细的"}, {"word": "trolley", "phonetic": "/ˈtrɒli/", "definition": "n. 手推车；（美）有轨电车；（英）无轨电车；空中吊运车 vt. 用手推车运 vi. 乘电车 n. (Trolley)人名；(英)特罗利"}, {"word": "tropic", "phonetic": "/ˈtrɒpɪk/", "definition": "n. 热带；回归线 adj. 热带的"}, {"word": "tropical", "phonetic": "/ˈtrɒpɪkəl/", "definition": "adj. 热带的；热情的；酷热的"}, {"word": "trumpet", "phonetic": "/ˈtrʌmpɪt/", "definition": "n. 喇叭；喇叭声 vt. 吹喇叭；吹嘘 vi. 吹喇叭；发出喇叭般的声音"}, {"word": "trunk", "phonetic": "/trʌŋk/", "definition": "n. 树干；躯干；象鼻；汽车车尾的行李箱 adj. 干线的；躯干的；箱子的 vt. 把…放入旅行箱内 n. (Trunk)人名；(德、匈、西)特伦克"}, {"word": "tube", "phonetic": "/tju:b/", "definition": "n. 管；电子管；隧道；电视机 vt. 使成管状；把…装管；用管输送 vi. 乘地铁；不及格"}, {"word": "tumor", "phonetic": "/ˈtju:mə/", "definition": "n. 肿瘤；肿块；赘生物"}, {"word": "turbine", "phonetic": "/ˈtɜ:baɪn/", "definition": "n. 涡轮；[动力] 涡轮机"}, {"word": "turmoil", "phonetic": "/ˈtɜ:mɔɪl/", "definition": "n. 混乱，骚动"}, {"word": "turnover", "phonetic": "/ˈtɜ:nəʊvə/", "definition": "n. 翻覆；[贸易] 营业额；流通量；半圆卷饼；失误 adj. 翻过来的；可翻转的"}, {"word": "twinkle", "phonetic": "/ˈtwɪŋkl/", "definition": "n. 闪烁 vt. 使闪耀；闪耀 vi. 闪烁；发亮"}, {"word": "twist", "phonetic": "/twɪst/", "definition": "n. 扭曲；拧；扭伤 vt. 捻；拧；扭伤；编织；使苦恼 vi. 扭动；弯曲 n. (Twist)人名；(英)特威斯特"}, {"word": "unanimous", "phonetic": "/ju:ˈnænɪməs/", "definition": "adj. 全体一致的；意见一致的；无异议的"}, {"word": "underlie", "phonetic": "/ˌʌndəˈlaɪ/", "definition": "vt. 成为……的基础；位于……之下"}, {"word": "unintentional", "phonetic": "/ˌʌn.ɪnˈten.tʃən.əl/", "definition": "adj. 非故意的；无意识的"}, {"word": "unit", "phonetic": "/ˈju:nɪt/", "definition": "n. 单位，单元；装置；[军] 部队；部件"}, {"word": "unload", "phonetic": "/ʌnˈləʊd/", "definition": "vt. 卸；摆脱…之负担；倾销 vi. 卸货；退子弹"}, {"word": "utmost", "phonetic": "/ˈʌtməʊst/", "definition": "n. 极限；最大可能 adj. 极度的；最远的"}, {"word": "variable", "phonetic": "/ˈveəriəbl/", "definition": "n. [数] 变量；可变物，可变因素 adj. 可变的；易变的，多变的；变异的，[生物] 畸变的"}, {"word": "variance", "phonetic": "/ˈveəriəns/", "definition": "n. 变异；变化；不一致；分歧；[数] 方差"}, {"word": "vein", "phonetic": "/veɪn/", "definition": "n. 血管；叶脉；[地质] 岩脉；纹理；翅脉；性情 vt. 使成脉络；象脉络般分布于 n. (Vein)人名；(英)维因；(塞)魏因"}, {"word": "velocity", "phonetic": "/vəˈlɒsəti/", "definition": "n. 物速度"}, {"word": "ventilate", "phonetic": "/ˈventɪleɪt/", "definition": "vt. 使通风；给…装通风设备；宣布"}, {"word": "venture", "phonetic": "/ˈventʃə/", "definition": "n. 企业；风险；冒险 vt. 敢于 vi. 冒险；投机 n. (Venture)人名；(法)旺蒂尔"}, {"word": "venue", "phonetic": "/ˈvenju:/", "definition": "n. 审判地；犯罪地点；发生地点；集合地点"}, {"word": "verdict", "phonetic": "/ˈvɜ:dɪkt/", "definition": "n. 结论；裁定"}, {"word": "verge", "phonetic": "/vɜ:dʒ/", "definition": "n. 边缘 vi. 濒临，接近；处在边缘 n. (Verge)人名；(英)弗奇；(西)贝尔赫"}, {"word": "versatile", "phonetic": "/ˈvɜ:sətaɪl/", "definition": "adj. 多才多艺的；通用的，万能的；多面手的"}, {"word": "veteran", "phonetic": "/ˈvetərən/", "definition": "n. 老兵；老手；富有经验的人；老运动员 adj. 经验丰富的；老兵的"}, {"word": "veto", "phonetic": "/ˈvi:təʊ/", "definition": "n. 否决权 vt. 否决；禁止 vi. 否决；禁止"}, {"word": "viable", "phonetic": "/ˈvaɪəbəl/", "definition": "adj. 可行的；能养活的；能生育的"}, {"word": "vibrate", "phonetic": "/vaɪˈbreɪt/", "definition": "vt. 使振动；使颤动 vi. 振动；颤动；摇摆；踌躇"}, {"word": "vicinity", "phonetic": "/vəˈsɪnəti/", "definition": "n. 邻近，附近；近处"}, {"word": "vigorous", "phonetic": "/ˈvɪg.ər.əs/", "definition": "adj. 有力的；精力充沛的"}, {"word": "vocal", "phonetic": "/ˈvəʊkəl/", "definition": "adj. 直言不讳的 adj. 歌唱的；声音的，有声的 n. 声乐作品；元音 n. (Vocal)人名；(西)博卡尔"}, {"word": "vocation", "phonetic": "/vəʊˈkeɪʃən/", "definition": "n. 职业；天职；天命；神召"}, {"word": "volatile", "phonetic": "/ˈvɒlətaɪl/", "definition": "adj. 不稳定的；反复无常的 n. 挥发物；有翅的动物 adj. [化学] 挥发性的；爆炸性的 n. (Volatile)人名；(意)沃拉蒂莱"}, {"word": "volt", "phonetic": "/vəʊlt/", "definition": "n. 伏特（电压单位）；环骑；闪避 n. (Volt)人名；(捷)沃尔特"}, {"word": "voltage", "phonetic": "/ˈvəʊltɪdʒ/", "definition": "n. 电压"}, {"word": "vulgar", "phonetic": "/ˈvʌlgə/", "definition": "n. 平民，百姓 adj. 粗俗的；通俗的；本土的"}, {"word": "waist", "phonetic": "/weɪst/", "definition": "n. 腰，腰部"}, {"word": "ward", "phonetic": "/wɔ:d/", "definition": "n. 病房；保卫；监视 vt. 避开；保卫；守护 n. (Ward)人名；(英)沃德；(德、芬、瑞典、葡)瓦尔德"}, {"word": "wardrobe", "phonetic": "/ˈwɔ:drəʊb/", "definition": "n. 衣柜；行头；全部戏装"}, {"word": "warehouse", "phonetic": "/ˈweəhaʊs/", "definition": "n. 仓库；货栈；大商店 vt. 储入仓库；以他人名义购进（股票）"}, {"word": "warrant", "phonetic": "/ˈwɒrənt/", "definition": "n. 根据；证明；正当理由；委任状 vt. 保证；担保；批准；辩解"}, {"word": "warranty", "phonetic": "/ˈwɒrənti/", "definition": "n. 保证；担保；授权；（正当）理由"}, {"word": "wary", "phonetic": "/ˈweəri/", "definition": "adj. 谨慎的；机警的；惟恐的；考虑周到的"}, {"word": "watershed", "phonetic": "/ˈwɔ:təʃed/", "definition": "n. （美）流域；分水岭；集水区；转折点 adj. 标志转折点的"}, {"word": "watt", "phonetic": "/wɒt/", "definition": "n. 瓦特 n. (Watt)人名；(英、葡)瓦特"}, {"word": "weapon", "phonetic": "/ˈwepən/", "definition": "n. 武器，兵器"}, {"word": "weary", "phonetic": "", "definition": "adj. 疲倦的；厌烦的；令人厌烦的 vt. 使疲倦；使厌烦 vi. 疲倦；厌烦"}, {"word": "weave", "phonetic": "/wi:v/", "definition": "vi. 纺织；编成；迂回行进 vt. 编织；编排；使迂回前进 n. 织物；织法；编织式样"}, {"word": "weird", "phonetic": "/wɪəd/", "definition": "n. （苏格兰）命运；预言 adj. 怪异的；不可思议的；超自然的"}, {"word": "wheat", "phonetic": "/wi:t/", "definition": "n. 小麦；小麦色 n. (Wheat)人名；(英)惠特"}, {"word": "whereby", "phonetic": "", "definition": "adv. 凭借；借以"}, {"word": "whip", "phonetic": "/wɪp/", "definition": "n. 鞭子 vt. 抽打；煽动 vi. 抽打"}, {"word": "whistle", "phonetic": "/ˈwɪs.əl/", "definition": "n. 口哨；汽笛 vt. 吹口哨；鸣汽笛"}, {"word": "wholesome", "phonetic": "/ˈhəʊlsəm/", "definition": "adj. 有益健康的；健全的；合乎卫生的；审慎的"}, {"word": "wicked", "phonetic": "/ˈwɪk.ɪd/", "definition": "adj. 邪恶的；恶劣的；不道德的；顽皮的"}, {"word": "widow", "phonetic": "/ˈwɪdəʊ/", "definition": "n. 寡妇 vt. 使成寡妇"}, {"word": "withhold", "phonetic": "/wɪðˈhəʊld/", "definition": "vt. 保留，不给；隐瞒；抑制 vi. 忍住；克制"}, {"word": "worship", "phonetic": "/ˈwɜ:ʃɪp/", "definition": "n. 崇拜；礼拜；尊敬 vt. 崇拜；尊敬；爱慕 vi. 拜神；做礼拜"}, {"word": "wrap", "phonetic": "/ræp/", "definition": "n. 外套；围巾 vt. 包；缠绕；隐藏 vi. 包起来；缠绕；穿外衣"}, {"word": "wreck", "phonetic": "/rek/", "definition": "n. 破坏；失事；残骸；失去健康的人 vt. 破坏；使失事；拆毁 vi. 失事；营救失事船只"}, {"word": "wrench", "phonetic": "/rentʃ/", "definition": "n. 扳手，扳钳；扭伤；痛苦；歪曲；猛扭 vt. 扭伤；猛扭；曲解；折磨 vi. 扭伤；猛扭；猛绞 n. (Wrench)人名；(英)伦奇"}, {"word": "wrinkle", "phonetic": "/ˈrɪŋkl/", "definition": "n. 皱纹 vi. 起皱 vt. 使起皱纹"}, {"word": "wrist", "phonetic": "/rɪst/", "definition": "n. 手腕；腕关节 vt. 用腕力移动"}, {"word": "zeal", "phonetic": "/zi:l/", "definition": "n. 热情；热心；热诚"}, {"word": "zigzag", "phonetic": "/ˈzɪgzæg/", "definition": "n. 之字形；Z字形 vt. 使成之字形；使曲折行进 vi. 曲折行进；作之字形行进 adj. 曲折的；锯齿形的；之字形的 adv. 曲折地；之字形地；Z字形地"}, {"word": "seminar", "phonetic": "/ˈsemɪna:/", "definition": "n. 讨论会，研讨班"}, {"word": "formidable", "phonetic": "/fɔ:ˈmɪdəbəl/", "definition": "adj. 强大的；可怕的；令人敬畏的；艰难的"}, {"word": "patrol", "phonetic": "/pəˈtrəʊl/", "definition": "n. 巡逻；巡逻队；侦察队 vt. 巡逻；巡查 vi. 巡逻；巡查"}, {"word": "metropolitan", "phonetic": "/ˌmetrəˈpɒlɪtən/", "definition": "adj. 大都市的；大主教辖区的；宗主国的 n. 大城市人；大主教；宗主国的公民"}, {"word": "immerse", "phonetic": "/ɪˈmɜ:s/", "definition": "vt. 沉浸；使陷入"}, {"word": "violate", "phonetic": "/ˈvaɪəleɪt/", "definition": "vt. 违反；侵犯，妨碍；亵渎"}, {"word": "aggravate", "phonetic": "/ˈægrəveɪt/", "definition": "vt. 加重；使恶化；激怒"}, {"word": "impose", "phonetic": "/ɪmˈpəʊz/", "definition": "vt. 强加；征税；以…欺骗 vi. 利用；欺骗；施加影响"}, {"word": "glory", "phonetic": "/ˈglɔ:ri/", "definition": "n. 光荣，荣誉；赞颂 vi. 自豪，骄傲；狂喜 n. (Glory)人名；(法)格洛里"}, {"word": "subsidy", "phonetic": "/ˈsʌbsədi/", "definition": "n. 补贴；津贴；补助金"}, {"word": "obsolete", "phonetic": "/ˈɒbsəli:t/", "definition": "adj. 废弃的；老式的 n. 废词；陈腐的人 vt. 淘汰；废弃"}, {"word": "obsession", "phonetic": "/əbˈseʃn̩/", "definition": "n. 痴迷；困扰；[内科][心理] 强迫观念"}, {"word": "savage", "phonetic": "/ˈsævɪdʒ/", "definition": "adj. 野蛮的；残酷的；n. 未开化的人；粗鲁的人；残暴成性的人 vt. 乱咬；粗暴的对待 n. (Savage)人名；(西)萨瓦赫；(英、德)萨维奇"}, {"word": "mediate", "phonetic": "/ˈmi:dieɪt/", "definition": "vi. 调解；斡旋；居中 vt. 调停；传达 adj. 间接的；居间的"}, {"word": "definite", "phonetic": "/ˈdefɪnɪt/", "definition": "adj. 一定的；确切的"}, {"word": "manifest", "phonetic": "/ˈmænɪfest/", "definition": "vt. 证明，表明；显示 vi. 显示，出现 n. 载货单，货单；旅客名单 adj. 显然的，明显的；明白的"}, {"word": "rally", "phonetic": "/ˈræli/", "definition": "n. 集会；回复；公路赛车会 vt. 团结；集合；恢复健康、力量等 vi. 团结；重整；恢复；（网球等）连续对打 n. (Rally)人名；(罗)拉利"}, {"word": "underlying", "phonetic": "/ˌʌndəˈlaɪɪŋ/", "definition": "adj. 潜在的；根本的；在下面的；优先的 v. 放在…的下面；为…的基础；优先于（underlie的ing形式）"}, {"word": "brisk", "phonetic": "/brɪsk/", "definition": "adj. 敏锐的，活泼的，轻快的；凛冽的 vt. 使……活泼；使……轻快；使……兴旺 vi. 活跃起来；变得轻快 n. (Brisk)人名；(法、芬)布里斯克"}, {"word": "demographic", "phonetic": "/ˌdeməˈgræfɪk/", "definition": "adj. 人口统计学的；人口学的"}, {"word": "denote", "phonetic": "/dɪˈnəʊt/", "definition": "vt. 表示，指示"}, {"word": "gross", "phonetic": "/grəʊs/", "definition": "n. 总额，总数 adj. 总共的；粗野的；恶劣的；显而易见 vt. 总共收入 n. (Gross)人名；(英、法、德、意、葡、西、俄、芬、罗、捷、匈)格罗斯"}, {"word": "detach", "phonetic": "/dɪˈtætʃ/", "definition": "vt. 分离；派遣；使超然"}, {"word": "deprive", "phonetic": "/dɪˈpraɪv/", "definition": "vt. 使丧失，剥夺"}, {"word": "desirable", "phonetic": "/dɪˈzaɪərəbl/", "definition": "n. 合意的人或事物 adj. 令人满意的；值得要的"}, {"word": "flourish", "phonetic": "/ˈflʌrɪʃ/", "definition": "n. 兴旺；茂盛；挥舞；炫耀；华饰 vi. 繁荣，兴旺；茂盛；活跃；处于旺盛时期 vt. 夸耀；挥舞"}, {"word": "prestige", "phonetic": "/preˈsti:ʒ/", "definition": "n. 威望；声望；声誉"}, {"word": "horizontal", "phonetic": "/ˌhɒrɪˈzɒntəl/", "definition": "n. 水平线，水平面；水平位置 adj. 水平的；地平线的；同一阶层的"}, {"word": "miserable", "phonetic": "/ˈmɪzərəbəl/", "definition": "adj. 悲惨的；痛苦的；卑鄙的"}, {"word": "precedent", "phonetic": "/ˈpresɪdənt/", "definition": "n. 先例；前例 adj. 在前的；在先的"}, {"word": "violence", "phonetic": "/ˈvaɪələns/", "definition": "n. 暴力；侵犯；激烈；歪曲"}, {"word": "discriminate", "phonetic": "/dɪˈskrɪmɪneɪt/", "definition": "vi. 区别；辨别 vt. 歧视；区别；辨别"}, {"word": "dividend", "phonetic": "/ˈdɪvɪdend/", "definition": "n. 红利；股息；[数] 被除数；奖金"}, {"word": "conform", "phonetic": "/kənˈfɔ:m/", "definition": "adj. 一致的；顺从的 vi. 符合；遵照；适应环境 vt. 使遵守；使一致；使顺从"}, {"word": "conscious", "phonetic": "/ˈkɒnʃəs/", "definition": "adj. 意识到的；故意的；神志清醒的"}, {"word": "startle", "phonetic": "/ˈsta:təl/", "definition": "n. 惊愕；惊恐 vt. 使吓一跳；使惊奇 vi. 惊吓；惊跳；惊奇"}, {"word": "statute", "phonetic": "/ˈstætʃu:t/", "definition": "n. [法] 法规；法令；条例"}, {"word": "psychiatry", "phonetic": "/saɪˈkaɪətri/", "definition": "n. 精神病学；精神病治疗法"}, {"word": "liability", "phonetic": "/ˌlaɪəˈbɪləti/", "definition": "n. 责任；债务；倾向；可能性；不利因素"}, {"word": "spur", "phonetic": "/spɜ:r/", "definition": "n. 激励，刺激；马刺；山坡 vt. 激励，鞭策；给…装踢马刺 vi. 骑马疾驰；给予刺激 n. (Spur)人名；(意)斯普尔；(德)施普尔"}, {"word": "stable", "phonetic": "/ˈsteɪbl/", "definition": "n. 马厩；牛棚 adj. 稳定的；牢固的；坚定的 vt. 赶入马房 vi. 被关在马厩 n. (Stable)人名；(英)斯特布尔"}, {"word": "dilute", "phonetic": "/daɪˈlu:t/", "definition": "vt. 稀释；削弱；冲淡 adj. 稀释的；淡的 vi. 变稀薄；变淡"}, {"word": "episode", "phonetic": "/ˈepɪsəʊd/", "definition": "n. 插曲；一段情节；插话；有趣的事件"}, {"word": "tumble", "phonetic": "/ˈtʌmbəl/", "definition": "n. 跌倒；翻筋斗；跌跤 vt. 使摔倒；使滚翻；使滚动 vi. 摔倒；倒塌；滚动；打滚；仓惶地行动"}, {"word": "doom", "phonetic": "/du:m/", "definition": "n. 厄运；死亡；判决；世界末日 vt. 注定；判决；使失败 n. (Doom)人名"}, {"word": "resent", "phonetic": "/rɪˈzɛnt/", "definition": "vt. 怨恨；愤恨；厌恶"}, {"word": "integrity", "phonetic": "/ɪnˈtɛgrɪti/", "definition": "n. 完整；正直；诚实；廉正"}, {"word": "swing", "phonetic": "/swɪŋ/", "definition": "n. 摇摆；摆动；秋千；音律；涨落 adj. 旋转的；悬挂的；强节奏爵士音乐的 vt. 使旋转；挥舞；悬挂 vi. 摇摆；转向；悬挂；大摇大摆地行走 n. (Swing)人名；(英、瑞典)斯温"}, {"word": "swear", "phonetic": "/swɛə/", "definition": "n. 宣誓；诅咒 vt. 发誓；咒骂 vi. 发誓，宣誓；诅咒"}, {"word": "surveillance", "phonetic": "/sɜ:ˈveɪləns/", "definition": "n. 监督；监视"}, {"word": "reconcile", "phonetic": "/ˈrɛkənsaɪl/", "definition": "vt. 使一致；使和解；调停，调解；使顺从"}, {"word": "layman", "phonetic": "/ˈleɪmən/", "definition": "n. 外行；门外汉；俗人；一般信徒 n. (Layman)人名；(英)莱曼"}, {"word": "eligible", "phonetic": "/ˈelɪdʒəbl/", "definition": "n. 合格者；适任者；有资格者 adj. 合格的，合适的；符合条件的；有资格当选的"}, {"word": "shallow", "phonetic": "/ˈʃæləʊ/", "definition": "n. [地理] 浅滩 adj. 浅的；肤浅的 vt. 使变浅 vi. 变浅 n. (Shallow)人名；(英)沙洛"}, {"word": "eloquent", "phonetic": "/ˈeləkwənt/", "definition": "adj. 意味深长的；雄辩的，有口才的；有说服力的；动人的"}, {"word": "neutral", "phonetic": "/ˈnju:trəl/", "definition": "adj. 中立的，中性的；中立国的；非彩色的 n. 中立国；中立者；非彩色；齿轮的空档"}, {"word": "denounce", "phonetic": "/dɪˈnaʊns/", "definition": "vt. 谴责；告发；公然抨击；通告废除"}, {"word": "chamber", "phonetic": "/ˈtʃeɪmbə(r)/", "definition": "n. 房间；室；会所 adj. 室内的；私人的，秘密的 vt. 把…关在室内；装填（弹药等） n. (Chamber)人名"}, {"word": "petty", "phonetic": "/ˈpeti/", "definition": "adj. 琐碎的；小气的；小规模的 n. (Petty)人名；(英、法)佩蒂"}, {"word": "smuggle", "phonetic": "/ˈsmʌgl/", "definition": "vt. 走私；偷运 vi. 走私，私运；偷带"}, {"word": "deficit", "phonetic": "/ˈdefɪsɪt/", "definition": "n. 赤字；不足额"}, {"word": "realm", "phonetic": "/relm/", "definition": "n. 领域，范围；王国"}, {"word": "slump", "phonetic": "/slʌmp/", "definition": "vt. 使降低；使衰落；使倒下 n. 衰退；暴跌；消沉 vi. 下降，衰落；倒下；大幅度下降，暴跌"}, {"word": "feasible", "phonetic": "/ˈfi:zəbl/", "definition": "adj. 可行的；可能的；可实行的"}, {"word": "defer", "phonetic": "/dɪˈfɜ:/", "definition": "vt. 使推迟；使延期 vi. 推迟；延期；服从 n. (Defer)人名；(法)德费"}, {"word": "rehearse", "phonetic": "/rɪˈhɜ:s/", "definition": "vt. 排练；预演 vi. 排练；演习"}, {"word": "pilgrim", "phonetic": "/ˈpɪlgrɪm/", "definition": "n. 朝圣者；漫游者；（美）最初的移民 n. (Pilgrim)人名；(英、德)皮尔格林 vi. 去朝圣；漫游"}, {"word": "analogy", "phonetic": "/əˈnælədʒi/", "definition": "n. 类比；类推；类似"}, {"word": "inertia", "phonetic": "/ɪˈnɜ:ʃə/", "definition": "n. [力] 惯性；惰性，迟钝；不活动"}, {"word": "amplify", "phonetic": "/ˈæmplɪfaɪ/", "definition": "vt. 放大，扩大；增强；详述 vi. 详述"}, {"word": "bend", "phonetic": "/bend/", "definition": "n. 弯曲 vt. 使弯曲；使屈服；使致力；使朝向 vi. 弯曲，转弯；屈服；倾向；专心于 n. (Bend)人名；(瑞典)本德"}, {"word": "wedge", "phonetic": "/wedʒ/", "definition": "n. 楔子；楔形物；导致分裂的东西 vt. 楔入；挤进；楔住 vi. 楔入；挤进 n. (Wedge)人名；(英)韦奇"}, {"word": "infinite", "phonetic": "/ˈɪnfɪnɪt/", "definition": "n. 无限；[数] 无穷大；无限的东西（如空间，时间） adj. 无限的，无穷的；无数的；极大的"}, {"word": "graze", "phonetic": "/greɪz/", "definition": "n. 放牧；轻擦 vi. 吃草；擦伤 vt. 放牧；擦伤"}, {"word": "bolster", "phonetic": "/ˈbəʊlstə/", "definition": "n. 支持；长枕 vt. 支持；支撑 n. (Bolster)人名；(英)博尔斯特"}, {"word": "melody", "phonetic": "/ˈmɛlədi/", "definition": "n. 旋律；歌曲；美妙的音乐 n. (Melody)人名；(英)梅洛迪"}, {"word": "slap", "phonetic": "/slæp/", "definition": "n. 掴；侮辱；掌击；拍打声 vt. 拍击；侮辱；掌击；掴…的耳光 vi. 掴；拍击 adv. 直接地；猛然地；恰好"}, {"word": "desert", "phonetic": "/dɪˈzɜ:t/", "definition": "n. 沙漠；荒原；应得的赏罚 vt. 遗弃；放弃；逃跑 adj. 沙漠的；荒凉的；不毛的 vi. 遗弃；开小差；逃掉"}, {"word": "plight", "phonetic": "/plaɪt/", "definition": "n. 困境；境况；誓约 vt. 保证；约定"}, {"word": "descent", "phonetic": "/dɪˈsent/", "definition": "n. 下降；血统；袭击 vt. 除去…的气味；使…失去香味"}, {"word": "trench", "phonetic": "/trentʃ/", "definition": "n. 沟，沟渠；战壕；堑壕 vt. 掘沟 vi. 挖战壕；侵害 n. (Trench)人名；(英、西)特伦奇"}, {"word": "clause", "phonetic": "/klɔ:z/", "definition": "n. 条款；[计] 子句 n. (Clause)人名；(法)克洛斯"}, {"word": "throne", "phonetic": "/θrəʊn/", "definition": "n. 王座；君主；王权 vt. 使登王位 vi. 登上王座 n. (Throne)人名；(瑞典)特罗内；(英)特罗恩"}, {"word": "virgin", "phonetic": "/ˈvɜ:dʒɪn/", "definition": "n. 处女 adj. 处女的；纯洁的；未经利用的，处于原始状态的"}, {"word": "siege", "phonetic": "/si:dʒ/", "definition": "n. 围攻；包围；围城；不断袭击；长期努力 vt. 围攻；包围"}, {"word": "depict", "phonetic": "/dɪˈpɪkt/", "definition": "vt. 描述；描画"}, {"word": "deputy", "phonetic": "/ˈdepjʊti/", "definition": "n. 代理人，代表 adj. 副的；代理的"}, {"word": "silent", "phonetic": "/ˈsaɪlənt/", "definition": "adj. 沉默的；寂静的 n. 无声电影；无记载的"}, {"word": "grain", "phonetic": "/greɪn/", "definition": "n. 谷物；粮食；颗粒；纹理 vt. 使成谷粒 vi. 成谷粒 n. (Grain)人名；(法)格兰"}, {"word": "heir", "phonetic": "/eə/", "definition": "n. [法] 继承人；后嗣；嗣子"}, {"word": "ballot", "phonetic": "/ˈbælət/", "definition": "n. 投票；投票用纸；投票总数 vt. 使投票表决；拉选票 vi. 投票；抽签决定 n. (Ballot)人名；(英)巴洛特；(法)巴洛"}, {"word": "biography", "phonetic": "", "definition": "n. 传记；档案；个人简介"}, {"word": "sail", "phonetic": "/seɪl/", "definition": "n. 帆，篷；航行 vi. 航行；启航，开船 vt. 航行"}, {"word": "daunting", "phonetic": "/ˈdɔ:ntɪŋ/", "definition": "adj. 使人畏缩的；使人气馁的；令人怯步的"}, {"word": "barn", "phonetic": "/ba:n/", "definition": "n. 谷仓；畜棚；车库；靶（核反应截面单位） vt. 把…贮存入仓"}, {"word": "eccentric", "phonetic": "/ɪkˈsentrɪk/", "definition": "n. 古怪的人 adj. 古怪的，反常的"}, {"word": "dawn", "phonetic": "/dɔ:n/", "definition": "n. 黎明；开端 vt. 破晓；出现；被领悟 n. (Dawn)人名；(西)道恩"}, {"word": "dash", "phonetic": "/dæʃ/", "definition": "n. 破折号；冲撞 vi. 猛冲；撞击 vt. 使…破灭；猛撞；泼溅 n. (Dash)人名；(英、印)达什；(蒙)达希"}, {"word": "glitter", "phonetic": "/ˈglɪtə(r)/", "definition": "vi. 闪光；闪烁 n. 闪光；灿烂"}, {"word": "cement", "phonetic": "/sɪˈment/", "definition": "n. 水泥；接合剂 vt. 巩固，加强；用水泥涂；接合 vi. 粘牢"}, {"word": "hatred", "phonetic": "/ˈheɪtrɪd/", "definition": "n. 憎恨；怨恨；敌意"}, {"word": "haste", "phonetic": "/heɪst/", "definition": "n. 匆忙；急忙；轻率 vt. 赶快 vi. 匆忙；赶紧 n. (Haste)人名；(英)黑斯特；(法)阿斯特"}, {"word": "deceive", "phonetic": "/dɪˈsi:v/", "definition": "v. 欺骗；行骗"}, {"word": "imperial", "phonetic": "/ɪmˈpɪəriəl/", "definition": "n. 纸张尺寸；特等品 adj. 帝国的；皇帝的；至高无上的；威严的 n. (Imperial)人名；(西)因佩里亚尔"}, {"word": "versus", "phonetic": "/ˈvɜ:səs/", "definition": "prep. 对；与...相对；对抗"}, {"word": "laser", "phonetic": "/ˈleɪzə/", "definition": "n. 激光 n. (Laser)人名；(德)拉泽"}, {"word": "seal", "phonetic": "/si:l/", "definition": "n. 密封；印章；海豹；封条；标志 vt. 密封；盖章 vi. 猎海豹 n. (Seal)人名；(英)西尔"}, {"word": "seam", "phonetic": "/si:m/", "definition": "n. 缝；接缝 vt. 缝合；接合；使留下伤痕 vi. 裂开；产生裂缝"}, {"word": "semester", "phonetic": "/sɪˈmestə/", "definition": "n. 学期；半年"}, {"word": "senator", "phonetic": "/ˈsenətə/", "definition": "n. 参议员；（古罗马的）元老院议员；评议员，理事 n. (Senator)人名；(瑞典、斯)塞纳托尔"}, {"word": "tenant", "phonetic": "", "definition": "n. 承租人；房客；佃户；居住者 vt. 租借（常用于被动语态） n. (Tenant)人名；(法)特南"}, {"word": "vest", "phonetic": "/vest/", "definition": "n. 背心；汗衫 vt. 授予；使穿衣 vi. 归属；穿衣服 n. (Vest)人名；(英)维斯特；(匈)韦什特"}, {"word": "gauge", "phonetic": "/geɪdʒ/", "definition": "n. 计量器；标准尺寸；容量规格 vt. 测量；估计；给…定规格"}, {"word": "permeate", "phonetic": "/ˈpɜ:mieɪt/", "definition": "vt. 渗透；透过；弥漫 vi. 弥漫；透入；散布"}, {"word": "badge", "phonetic": "/bædʒ/", "definition": "n. 徽章；证章；标记 vt. 授给…徽章"}, {"word": "ebb", "phonetic": "/eb/", "definition": "n. 衰退；退潮；衰落 vi. 衰退；减少；衰落；潮退"}, {"word": "gang", "phonetic": "/gæŋ/", "definition": "n. 群；一伙；一组 vt. 使成群结队；结伙伤害或恐吓某人 vi. 成群结队 n. (Gang)人名；(法)冈；(罗)甘格；(英)甘"}, {"word": "ignite", "phonetic": "/ɪgˈnaɪt/", "definition": "vt. 点燃；使燃烧；使激动 vi. 点火；燃烧"}, {"word": "bait", "phonetic": "/beɪt/", "definition": "n. 饵；诱饵 vt. 引诱；在…中放诱饵；折磨 vi. 中途休息 n. (Bait)人名；(意)巴伊特"}, {"word": "gear", "phonetic": "/gɪə/", "definition": "n. 齿轮；装置，工具；传动装置 adj. 好极了 vt. 开动；搭上齿轮；使……适合；使……准备好 vi. 适合；搭上齿轮；开始工作 n. (Gear)人名；(英)吉尔"}, {"word": "jewellery", "phonetic": "/ˈdʒu:əlri/", "definition": "n. 珠宝"}, {"word": "vacant", "phonetic": "/ˈveɪkənt/", "definition": "adj. 空虚的；空的；空缺的；空闲的；茫然的 n. (Vacant)人名；(法)瓦康"}, {"word": "pant", "phonetic": "/pænt/", "definition": "n. 气喘；喘息；喷气声 vt. 气喘 vi. 喘息；渴望；气喘吁吁地说出某事 n. (Pant)人名；(印、尼、捷、英)潘特"}, {"word": "parade", "phonetic": "/pəˈreɪd/", "definition": "n. 游行；阅兵；炫耀；行进；阅兵场 vt. 游行；炫耀；列队行进 vi. 游行；炫耀；列队行进 n. (Parade)人名；(法、德)帕拉德"}, {"word": "parasite", "phonetic": "/ˈpærəsaɪt/", "definition": "n. 寄生虫；食客"}, {"word": "sacred", "phonetic": "/ˈseɪkrɪd/", "definition": "adj. 神圣的；神的；宗教的；庄严的"}, {"word": "sane", "phonetic": "/seɪn/", "definition": "adj. 健全的；理智的；[临床] 神志正常的 n. (Sane)人名；(日)实(姓)；(日)实(名)；(芬、塞、冈、几比、塞内)萨内"}, {"word": "paradigm", "phonetic": "/ˈpærədaɪm/", "definition": "n. 范例；词形变化表"}, {"word": "valve", "phonetic": "/vælv/", "definition": "n. 阀；[解剖] 瓣膜；真空管；活门 vt. 装阀于；以活门调节 n. (Valve)人名；(俄、芬)瓦尔韦"}, {"word": "vapour", "phonetic": "/ˈveɪpə/", "definition": "n. 蒸气（等于vapor）；水蒸气"}, {"word": "recipe", "phonetic": "/ˈresɪpi/", "definition": "n. 食谱；秘诀；[临床] 处方；烹饪法"}, {"word": "tame", "phonetic": "/teɪm/", "definition": "adj. 驯服的；平淡的；乏味的；顺从的 vt. 驯养；使变得平淡；制服 vi. 变得驯服 n. (Tame)人名；(捷)塔梅"}, {"word": "sauce", "phonetic": "/sɔ:s/", "definition": "n. 酱油；沙司；调味汁 vt. 使增加趣味；给…调味 n. (Sauce)人名；(西)绍塞；(法)索斯"}, {"word": "tactic", "phonetic": "/ˈtæktɪk/", "definition": "n. 策略，战略 adj. 按顺序的，依次排列的"}, {"word": "saucer", "phonetic": "/ˈsɔ:sə/", "definition": "n. 茶托，浅碟；浅碟形物；眼睛"}, {"word": "dual", "phonetic": "/ˈdju:əl/", "definition": "n. 双数；双数词 adj. 双的；双重的 n. (Dual)人名；(法)迪阿尔"}, {"word": "metric", "phonetic": "/ˈmetrɪk/", "definition": "adj. 公制的；米制的；公尺的 n. 度量标准"}, {"word": "lick", "phonetic": "/lɪk/", "definition": "vt. 舔；卷过；鞭打 vt. （非正式）战胜 vi. 舔；轻轻拍打 n. 舔；打；少许 n. (Lick)人名"}, {"word": "mercy", "phonetic": "/ˈmɜ:rsi/", "definition": "n. 仁慈，宽容；怜悯；幸运；善行 n. (Mercy)人名"}, {"word": "metaphor", "phonetic": "/ˈmetəfə(r)/", "definition": "n. 暗喻，隐喻；比喻说法"}, {"word": "porcelain", "phonetic": "/ˈpɔ:rsəlɪn/", "definition": "n. 瓷；瓷器 adj. 瓷制的；精美的"}, {"word": "portray", "phonetic": "/pɔ:rˈtreɪ/", "definition": "vt. 描绘；扮演"}, {"word": "merchant", "phonetic": "/ˈmɜ:tʃənt/", "definition": "n. 商人，批发商；店主 adj. 商业的，商人的 n. (Merchant)人名；(英)麦钱特"}, {"word": "sneak", "phonetic": "/sni:k/", "definition": "vi. 溜；鬼鬼祟祟做事 adj. 暗中进行的 vt. 偷偷地做"}, {"word": "devil", "phonetic": "/ˈdev.əl/", "definition": "n. 魔鬼；家伙"}, {"word": "cohesive", "phonetic": "/kəʊˈhi:.sɪv/", "definition": "adj. 凝聚的；有结合力的"}, {"word": "snobbish", "phonetic": "/ˈsnɒb.ɪʃ/", "definition": "adj. 势利的"}, {"word": "fixture", "phonetic": "/ˈfɪks.tʃər/", "definition": "n. 设备；固定装置；固定于某处不大可能移动之物"}, {"word": "spiral", "phonetic": "/ˈspaɪrəl/", "definition": "n. 螺旋；旋涡；螺旋形之物 adj. 螺旋形的；盘旋的 vt. 使成螺旋形；使作螺旋形上升 vi. 盘旋；成螺旋形；螺旋形上升"}, {"word": "blunt", "phonetic": "/blʌnt/", "definition": "adj. 钝的，不锋利的；生硬的；直率的 vt. 使迟钝 n. (Blunt)人名；(英)布伦特"}, {"word": "specimen", "phonetic": "/ˈspesɪmɪn/", "definition": "n. 样品，样本；标本"}, {"word": "residence", "phonetic": "/ˈrezɪdəns/", "definition": "n. 住宅，住处；居住"}, {"word": "blush", "phonetic": "/blʌʃ/", "definition": "n. 脸红；红色；羞愧 vt. 红著脸表示；使成红色 vi. 脸红；感到惭愧 n. (Blush)人名；(英)布拉什"}, {"word": "spine", "phonetic": "/spaɪn/", "definition": "n. 脊柱，脊椎；刺；书脊"}, {"word": "prayer", "phonetic": "/preər/", "definition": "n. 祈祷，祷告；恳求；祈祷文"}, {"word": "timid", "phonetic": "/ˈtɪmɪd/", "definition": "adj. 胆小的；羞怯的"}, {"word": "sore", "phonetic": "/sɔ:/", "definition": "n. 溃疡，痛处；恨事，伤心事 adj. 疼痛的，痛心的；剧烈的，极度的；恼火的，发怒的；厉害的，迫切的 n. (Sore)人名；(法)索尔；(意)索雷"}, {"word": "comic", "phonetic": "/ˈkɒmɪk/", "definition": "n. 连环漫画；喜剧演员；滑稽人物 adj. 喜剧的；滑稽的；有趣的"}, {"word": "blend", "phonetic": "/blend/", "definition": "n. 混合；掺合物 vi. 混合；协调 vt. 混合"}, {"word": "sparkle", "phonetic": "/ˈspa:kl/", "definition": "n. 闪耀；火花；活力 vt. 使闪耀；使发光 vi. 闪耀；发泡；活跃"}, {"word": "resolute", "phonetic": "/ˈrezəlu:t/", "definition": "adj. 坚决的；果断的"}, {"word": "diabetes", "phonetic": "/ˌdaɪ.əˈbi:.ti:z/", "definition": "n. 糖尿病；多尿症"}, {"word": "lens", "phonetic": "/lenz/", "definition": "n. 透镜，镜头；眼睛中的水晶体；晶状体；隐形眼镜；汽车的灯玻璃 vt. 给……摄影"}, {"word": "innumerable", "phonetic": "/ɪˈnju:.mər.ə.bəl/", "definition": "adj. 无数的，数不清的"}, {"word": "destructive", "phonetic": "/dɪˈstrʌktɪv/", "definition": "adj. 破坏的；毁灭性的；有害的，消极的"}, {"word": "equity", "phonetic": "/ˈekwɪti/", "definition": "n. 公平，公正；衡平法；普通股；抵押资产的净值"}, {"word": "compact", "phonetic": "/ˈkɒmpækt/", "definition": "n. 合同，契约；小粉盒 adj. 紧凑的，紧密的；简洁的 vt. 使简洁；使紧密结合"}, {"word": "hostage", "phonetic": "/ˈhɒstɪdʒ/", "definition": "n. 人质；抵押品"}, {"word": "foremost", "phonetic": "/ˈfɔ:məʊst/", "definition": "adj. 最重要的；最先的 adv. 首先；居于首位地"}, {"word": "rope", "phonetic": "/rəʊp/", "definition": "n. 绳，绳索 vt. 捆，绑 vi. 拧成绳状 n. (Rope)人名；(英)罗普；(芬)罗佩"}, {"word": "lumber", "phonetic": "/ˈlʌmbə/", "definition": "vi. 伐木；喧闹地向前走；笨重地行动，缓慢地移动 vt. 砍伐木材；乱堆 n. 木材；废物，无用的杂物；隆隆声"}, {"word": "doctrine", "phonetic": "/ˈdɒktrɪn/", "definition": "n. 主义；学说；教义；信条"}, {"word": "hound", "phonetic": "/haʊnd/", "definition": "n. 猎犬；猎犬；卑劣的人 vt. 追猎；烦扰；激励"}, {"word": "stitch", "phonetic": "/stɪtʃ/", "definition": "n. 针脚，线迹；一针 vt. 缝，缝合 vi. 缝，缝合"}, {"word": "proficiency", "phonetic": "/prəˈfɪʃnsi/", "definition": "n. 精通，熟练"}, {"word": "proficient", "phonetic": "/prəˈfɪʃnt/", "definition": "n. 精通；专家，能手 adj. 熟练的，精通的"}, {"word": "lubricate", "phonetic": "/ˈlu:brɪkeɪt/", "definition": "vi. 润滑；涂油；起润滑剂作用 vt. 使…润滑；给…加润滑油"}, {"word": "monetary", "phonetic": "/ˈmʌnɪtri/", "definition": "adj. 货币的；财政的"}, {"word": "correspondent", "phonetic": "/ˌkɒrɪˈspɒndənt/", "definition": "n. 通讯记者；客户；通信者；代理商行"}, {"word": "rigid", "phonetic": "/ˈrɪdʒɪd/", "definition": "adj. 严格的；僵硬的，死板的；坚硬的；精确的"}, {"word": "lorry", "phonetic": "/ˈlɒri/", "definition": "n. 卡车；[车辆] 货车；运料车 n. (Lorry)人名；(法、德)洛里"}, {"word": "lofty", "phonetic": "/ˈlɒfti/", "definition": "adj. 高的；崇高的；高级的；高傲的 n. (Lofty)人名；(英)洛夫蒂"}, {"word": "numerical", "phonetic": "/nju:ˈmerɪkəl/", "definition": "adj. 数值的；数字的；用数字表示的"}, {"word": "revolve", "phonetic": "/rɪˈvɒlv/", "definition": "n. 旋转；循环；旋转舞台 vt. 使…旋转；使…循环；反复考虑 vi. 旋转；循环出现；反复考虑"}, {"word": "dismay", "phonetic": "/dɪsˈmeɪ/", "definition": "n. 沮丧，灰心；惊慌 vt. 使沮丧；使惊慌"}, {"word": "evacuate", "phonetic": "/ɪˈvækjueɪt/", "definition": "vt. 疏散，撤退；排泄 vi. 疏散；撤退；排泄"}, {"word": "evade", "phonetic": "/ɪˈveɪd/", "definition": "vt. 逃避；规避；逃脱 vi. 逃避；规避；逃脱"}, {"word": "sunset", "phonetic": "/ˈsʌnsɛt/", "definition": "n. 日落，傍晚"}, {"word": "rotate", "phonetic": "/rəʊˈteɪt/", "definition": "vt. 使旋转；使转动；使轮流 adj. [植] 辐状的 vi. 旋转；循环"}, {"word": "hurl", "phonetic": "/hɜ:l/", "definition": "n. 用力的投掷 vt. 用力投掷；丢下；愤慨地说出 vi. 猛投；猛掷"}, {"word": "crown", "phonetic": "/kraʊn/", "definition": "n. 王冠；王权；花冠；顶点 vt. 加冕；居…之顶；表彰；使圆满完成 n. (Crown)人名；(英)克朗"}, {"word": "roundabout", "phonetic": "/ˈraʊndəbaʊt/", "definition": "n. 迂回路线；环状交叉路口 adj. 迂回的，绕道的；圆滚滚的"}, {"word": "credentials", "phonetic": "/krəˈdenʃlz/", "definition": "n. 证书；文凭；信任状（credential的复数） v. 得到信用；授…以证书（credential的三单形式）"}, {"word": "authentic", "phonetic": "/ɔ:ˈθentɪk/", "definition": "adj. 真正的，真实的；可信的"}, {"word": "sturdy", "phonetic": "/ˈstɜ:di/", "definition": "n. 羊晕倒病 adj. 坚定的；强健的；健全的 n. (Sturdy)人名；(英)斯特迪"}, {"word": "superstition", "phonetic": "/ˌsu:pəˈstɪʃən/", "definition": "n. 迷信"}, {"word": "canal", "phonetic": "/kəˈnæl/", "definition": "n. 运河；[地理] 水道；[建] 管道；灌溉水渠 vt. 在…开凿运河 n. (Canal)人名；(英、法、西、意、葡)卡纳尔；(土)贾纳尔"}, {"word": "disk", "phonetic": "/dɪsk/", "definition": "n. 磁盘，磁碟片；圆盘，盘状物；唱片"}, {"word": "grass", "phonetic": "/gra:s/", "definition": "n. 草；草地，草坪 vt. 放牧；使……长满草；使……吃草 vi. 长草 n. (Grass)人名；(法、德、俄、瑞典、英)格拉斯"}, {"word": "pleasant", "phonetic": "/ˈplezənt/", "definition": "adj. 令人愉快的，舒适的；讨人喜欢的，和蔼可亲的 n. (Pleasant)人名；(英)普莱曾特"}, {"word": "dialogue", "phonetic": "/ˈdaɪəlɒg/", "definition": "n. 对话；意见交换 vt. 用对话表达 vi. 对话"}, {"word": "archeology", "phonetic": "/ˌa:r.kiˈɒl.ə.dʒi/", "definition": "n. 考古学"}, {"word": "cliff", "phonetic": "/klɪf/", "definition": "n. 悬崖；绝壁 n. (Cliff)人名；(英)克利夫"}, {"word": "soldier", "phonetic": "/ˈsəʊldʒə/", "definition": "n. 军人；[昆] 兵蚁；懒汉；一片烤面包 vi. 当兵；磨洋工；坚持干；假称害病"}];
+
+let currentIndex = 0;
+let filteredIndices = [];
+let status = {};
+let alwaysShowDef = false;
+let currentMode = 'all';
+let toastTimer = null;
+let historyStack = [];
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>"']/g, function(m) {
+    return {'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[m];
+  });
+}
+
+function loadProgress() {
+  let savedIndices = null;
+  try {
+    const saved = localStorage.getItem('vocabProgress');
+    if (saved) {
+      const data = JSON.parse(saved);
+      status = data.status || {};
+      currentIndex = data.currentIndex || 0;
+      alwaysShowDef = data.alwaysShowDef || false;
+      currentMode = data.currentMode || 'all';
+      savedIndices = data.filteredIndices;
+    }
+  } catch(e) {}
+
+  if (savedIndices && Array.isArray(savedIndices) && savedIndices.length > 0) {
+    filteredIndices = savedIndices;
+    if (currentIndex >= filteredIndices.length) currentIndex = 0;
+  } else {
+    rebuildFilter();
+  }
+  
+  historyStack = [];
+  updateAlwaysShowUI();
+  updateFilterUI();
+  showCard();
+}
+
+function saveProgress() {
+  localStorage.setItem('vocabProgress', JSON.stringify({
+    status,
+    currentIndex,
+    alwaysShowDef,
+    currentMode,
+    filteredIndices,
+    timestamp: Date.now()
+  }));
+}
+
+function rebuildFilter(mode) {
+  if (mode !== undefined) currentMode = mode;
+  filteredIndices = [];
+  for (let i = 0; i < VOCAB.length; i++) {
+    const s = status[VOCAB[i].word];
+    if (currentMode === 'all') filteredIndices.push(i);
+    else if (currentMode === 'known' && s === true) filteredIndices.push(i);
+    else if (currentMode === 'unknown' && s === false) filteredIndices.push(i);
+    else if (currentMode === 'unmarked' && s === undefined) filteredIndices.push(i);
+  }
+  if (currentIndex >= filteredIndices.length) currentIndex = 0;
+}
+
+function updateFilterUI() {
+  document.querySelectorAll('.filter-chip[data-mode]').forEach(c => {
+    c.classList.toggle('active', c.dataset.mode === currentMode);
+  });
+}
+
+function updateStats() {
+  let known = 0, unknown = 0, unmarked = 0;
+  for (const w of VOCAB) {
+    const s = status[w.word];
+    if (s === true) known++;
+    else if (s === false) unknown++;
+    else unmarked++;
+  }
+  document.getElementById('total').textContent = VOCAB.length;
+  document.getElementById('knownCount').textContent = known;
+  document.getElementById('unknownCount').textContent = unknown;
+  document.getElementById('unmarked').textContent = unmarked;
+
+  const totalCompleted = known + unknown;
+  const prog = VOCAB.length ? (totalCompleted / VOCAB.length * 100) : 0;
+  document.getElementById('progressFill').style.width = Math.min(prog, 100) + '%';
+}
+
+function updateAlwaysShowUI() {
+  const btn = document.getElementById('alwaysShowBtn');
+  const badge = document.getElementById('modeBadge');
+  if (alwaysShowDef) {
+    btn.classList.add('active');
+    btn.textContent = '常显中';
+    badge.classList.add('show');
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = '常显释义';
+    badge.classList.remove('show');
+  }
+}
+
+function showCard() {
+  updateStats();
+  if (filteredIndices.length === 0) {
+    document.getElementById('word').textContent = '暂无单词';
+    document.getElementById('phonetic').textContent = '';
+    document.getElementById('definition').textContent = '';
+    document.getElementById('definition').classList.add('hidden');
+    return;
+  }
+  const item = VOCAB[filteredIndices[currentIndex]];
+  document.getElementById('word').textContent = item.word;
+  document.getElementById('phonetic').textContent = item.phonetic;
+  document.getElementById('definition').textContent = item.definition;
+  if (alwaysShowDef) {
+    document.getElementById('definition').classList.remove('hidden');
+  } else {
+    document.getElementById('definition').classList.add('hidden');
+  }
+}
+
+function onWordClick() {
+  if (filteredIndices.length === 0) return;
+  if (!alwaysShowDef) {
+    document.getElementById('definition').classList.toggle('hidden');
+  }
+}
+
+function toggleAlwaysShow() {
+  alwaysShowDef = !alwaysShowDef;
+  updateAlwaysShowUI();
+  saveProgress();
+  showCard();
+  showToast(alwaysShowDef ? '已开启常显释义' : '点击单词显示释义');
+}
+
+function mark(known) {
+  if (filteredIndices.length === 0) return;
+  const currentVocabIdx = filteredIndices[currentIndex];
+  const word = VOCAB[currentVocabIdx].word;
+  const oldStatus = status[word];
+
+  historyStack.push({
+    vocabIdx: currentVocabIdx,
+    oldStatus: oldStatus,
+    wasMarkAction: true
+  });
+
+  status[word] = known;
+  showToast(known ? '✓ 认识' : '✗ 不认识');
+
+  let stillMatches = false;
+  if (currentMode === 'all') stillMatches = true;
+  else if (currentMode === 'known' && known === true) stillMatches = true;
+  else if (currentMode === 'unknown' && known === false) stillMatches = true;
+
+  if (stillMatches) {
+    currentIndex = (currentIndex + 1) % filteredIndices.length;
+  } else {
+    filteredIndices.splice(currentIndex, 1);
+    if (filteredIndices.length === 0) {
+      currentIndex = 0;
+    } else {
+      currentIndex = currentIndex % filteredIndices.length;
+    }
+  }
+
+  saveProgress();
+  showCard();
+}
+
+function nextCard() {
+  if (!filteredIndices.length) return;
+  historyStack.push({
+    vocabIdx: filteredIndices[currentIndex],
+    wasMarkAction: false
+  });
+  currentIndex = (currentIndex + 1) % filteredIndices.length;
+  saveProgress();
+  showCard();
+}
+
+function prevCard() {
+  if (historyStack.length > 0) {
+    const lastAction = historyStack.pop();
+
+    if (lastAction.wasMarkAction) {
+      const word = VOCAB[lastAction.vocabIdx].word;
+      status[word] = lastAction.oldStatus;
+    }
+
+    let targetIdx = filteredIndices.indexOf(lastAction.vocabIdx);
+    if (targetIdx === -1) {
+      filteredIndices.splice(currentIndex, 0, lastAction.vocabIdx);
+      targetIdx = currentIndex;
+    }
+
+    currentIndex = targetIdx;
+    saveProgress();
+    showCard();
+  } else if (currentIndex > 0) {
+    currentIndex--;
+    saveProgress();
+    showCard();
+  } else {
+    showToast('已经是第一张了');
+  }
+}
+
+function filterMode(mode, btn) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  historyStack = [];
+  rebuildFilter(mode);
+  currentIndex = 0;
+  saveProgress();
+  showCard();
+  document.getElementById('outline').style.display = 'none';
+  document.getElementById('cardView').style.display = 'block';
+}
+
+function shuffle() {
+  if (filteredIndices.length < 2) return;
+  historyStack = [];
+  for (let i = filteredIndices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [filteredIndices[i], filteredIndices[j]] = [filteredIndices[j], filteredIndices[i]];
+  }
+  currentIndex = 0;
+  saveProgress();
+  showCard();
+  showToast('已打乱顺序');
+}
+
+function toggleOutline() {
+  const outline = document.getElementById('outline');
+  const cardView = document.getElementById('cardView');
+  if (outline.style.display === 'block') {
+    outline.style.display = 'none';
+    cardView.style.display = 'block';
+  } else {
+    renderOutline();
+    outline.style.display = 'block';
+    cardView.style.display = 'none';
+  }
+}
+
+function renderOutline() {
+  const list = document.getElementById('outlineList');
+  let html = '';
+  for (let i = 0; i < VOCAB.length; i++) {
+    const item = VOCAB[i];
+    const s = status[item.word];
+    const cls = s === true ? 'known' : (s === false ? 'unknown' : 'unmarked');
+    html += `<div class="word-item">
+      <div class="status-dot ${cls}"></div>
+      <div class="word-info">
+        <div class="w">${escapeHtml(item.word)}</div>
+        <div class="p">${escapeHtml(item.phonetic)}</div>
+        <div class="word-def">${escapeHtml(item.definition)}</div>
+      </div>
+    </div>`;
+  }
+  list.innerHTML = html || '<div style="text-align:center;color:#999;padding:30px">暂无单词</div>';
+}
+
+function exportUnknown() {
+  const unknown = VOCAB.filter(w => status[w.word] === false);
+  if (unknown.length === 0) {
+    showToast('暂无未掌握的单词');
+    return;
+  }
+  let content = '未掌握单词（共 ' + unknown.length + ' 个）\n\n';
+  unknown.forEach(w => {
+    content += w.word + '\t' + w.phonetic + '\t' + w.definition + '\n';
+  });
+  
+  const blob = new Blob(['\ufeff' + content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '未掌握单词_' + new Date().toISOString().slice(0,10) + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('已导出 ' + unknown.length + ' 个未掌握单词');
+}
+
+function resetProgress() {
+  if (confirm('确定重置所有进度？')) {
+    status = {};
+    currentIndex = 0;
+    alwaysShowDef = false;
+    currentMode = 'all';
+    historyStack = [];
+    localStorage.removeItem('vocabProgress');
+
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    const allChip = document.querySelector('.filter-chip[data-mode="all"]');
+    if (allChip) allChip.classList.add('active');
+
+    rebuildFilter('all');
+    updateAlwaysShowUI();
+    showCard();
+    showToast('进度已重置');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    t.style.display = 'none';
+  }, 1400);
+}
+
+loadProgress();
+</script>
+</body>
+</html>
